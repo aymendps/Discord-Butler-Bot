@@ -4,6 +4,7 @@ export interface Song {
   thumbnail_url: string;
   duration: number;
   seek: number;
+  isYoutubeBased: boolean;
   isFile?: boolean;
   isLive?: boolean;
 }

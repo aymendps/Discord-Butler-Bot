@@ -147,16 +147,18 @@ export const playSong = async (
 
       killCurrentStreamProcessPrematurely();
 
-      const stream = youtubeDl.exec(currentSong.url, {
-        format: "bestaudio",
-        output: "-", // Send output to stdout
-        userAgent: "googlebot",
-        addHeader: ["referer:youtube.com"],
-        exec: "--cookies-from-browser chrome", // Automatically get cookies
-        noCheckCertificates: true,
-        noWarnings: true,
-        preferFreeFormats: true,
-      });
+      const stream = currentSong.isYoutubeBased
+        ? youtubeDl.exec(currentSong.url, {
+            format: "bestaudio",
+            output: "-", // Send output to stdout
+            userAgent: "googlebot",
+            addHeader: ["referer:youtube.com"],
+            exec: "--cookies-from-browser chrome", // Automatically get cookies
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true,
+          })
+        : youtubeDl.exec(currentSong.url, { format: "bestaudio", output: "-" });
 
       stream.catch((err) => {
         if (songQueue.justSeeked || songQueue.justSkipped) {
@@ -170,17 +172,31 @@ export const playSong = async (
 
       setCurrentStreamProcess(stream);
 
-      if (currentSong.isLive) {
-        ffmpeg()
-          .input(stream.stdout)
-          .noVideo()
-          .audioCodec("libopus")
-          .format("opus")
-          .audioChannels(2)
-          .setDuration(14400)
-          .on("error", (err, stdout, stderr) => {})
-          .on("stderr", (stderr) => {})
-          .pipe(ffmpegStream);
+      if (currentSong.isYoutubeBased) {
+        if (currentSong.isLive) {
+          ffmpeg()
+            .input(stream.stdout)
+            .noVideo()
+            .audioCodec("libopus")
+            .format("opus")
+            .audioChannels(2)
+            .setDuration(14400)
+            .on("error", (err, stdout, stderr) => {})
+            .on("stderr", (stderr) => {})
+            .pipe(ffmpegStream);
+        } else {
+          ffmpeg()
+            .input(stream.stdout)
+            .noVideo()
+            .audioCodec("libopus")
+            .format("opus")
+            .audioChannels(2)
+            .setStartTime(Number(seek))
+            .setDuration(Number(currentSong.duration) - Number(seek))
+            .on("error", (err, stdout, stderr) => {})
+            .on("stderr", (stderr) => {})
+            .pipe(ffmpegStream);
+        }
       } else {
         ffmpeg()
           .input(stream.stdout)
@@ -188,8 +204,6 @@ export const playSong = async (
           .audioCodec("libopus")
           .format("opus")
           .audioChannels(2)
-          .setStartTime(Number(seek))
-          .setDuration(Number(currentSong.duration) - Number(seek))
           .on("error", (err, stdout, stderr) => {})
           .on("stderr", (stderr) => {})
           .pipe(ffmpegStream);
@@ -338,7 +352,7 @@ export const executePlaySong = async (
                 .setColor("DarkGreen"),
             ],
             components:
-              !song.isFile && !song.isLive
+              !song.isFile && !song.isLive && song.isYoutubeBased
                 ? [
                     new ActionRowBuilder<ButtonBuilder>().addComponents(
                       new ButtonBuilder()

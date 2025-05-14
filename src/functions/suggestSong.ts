@@ -54,6 +54,7 @@ const suggestSong = async (
         thumbnail_url: relatedSong.thumbnails[0].url,
         duration: Number(relatedSong.length_seconds),
         seek: 0,
+        isYoutubeBased: true,
       });
     }
 

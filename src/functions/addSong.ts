@@ -19,6 +19,43 @@ const checkForTimeStamp = (url: string, songDuration: number) => {
   return seconds;
 };
 
+const SUPPORTED_ALT_PLATFORMS = [
+  {
+    prefix: "x.com",
+    title: "Twitter Video",
+    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/b/b7/X_logo.jpg",
+  },
+  {
+    prefix: "twitter.com",
+    title: "Twitter Video",
+    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/b/b7/X_logo.jpg",
+  },
+  {
+    prefix: "reddit.com",
+    title: "Reddit Video",
+    thumbnail:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/b/bd/Reddit_Logo_Icon.svg/316px-Reddit_Logo_Icon.svg.png",
+  },
+  {
+    prefix: "facebook.com",
+    title: "Facebook Video",
+    thumbnail:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/0/04/Facebook_f_logo_%282021%29.svg/512px-Facebook_f_logo_%282021%29.svg.png",
+  },
+  {
+    prefix: "fb.watch",
+    title: "Facebook Video",
+    thumbnail:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/0/04/Facebook_f_logo_%282021%29.svg/512px-Facebook_f_logo_%282021%29.svg.png",
+  },
+  {
+    prefix: "twitch.tv",
+    title: "Twitch Video",
+    thumbnail:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Twitch_Glitch_Logo_Purple.svg/1756px-Twitch_Glitch_Logo_Purple.svg.png",
+  },
+];
+
 export const addSong = async (
   url: string,
   songQueue: SongQueue,
@@ -27,6 +64,26 @@ export const addSong = async (
   try {
     if (url) {
       console.log("requested song: " + url);
+
+      const altPlatform = SUPPORTED_ALT_PLATFORMS.find(
+        (platform) =>
+          url.startsWith("https://" + platform.prefix) ||
+          url.startsWith("https://www." + platform.prefix)
+      );
+
+      if (altPlatform) {
+        const song: Song = {
+          title: altPlatform.title,
+          url: url,
+          thumbnail_url: altPlatform.thumbnail,
+          duration: 0,
+          seek: 0,
+          isYoutubeBased: false,
+          isFile: false,
+        };
+        songQueue.push(song);
+        return song;
+      }
 
       if (url.startsWith("https") && play.yt_validate(url) === "playlist") {
         const playlist = await play.playlist_info(url);
@@ -39,6 +96,7 @@ export const addSong = async (
             thumbnail_url: v.thumbnails[0].url,
             duration: v.durationInSec,
             seek: 0,
+            isYoutubeBased: true,
           };
         });
         songs.forEach((song) => {
@@ -53,6 +111,7 @@ export const addSong = async (
             : songs[0].thumbnail_url,
           duration: songs[0].duration,
           seek: 0,
+          isYoutubeBased: true,
         };
       } else if (url.startsWith("https") && play.yt_validate(url) === "video") {
         try {
@@ -68,6 +127,7 @@ export const addSong = async (
               Number(songInfo.videoDetails.lengthSeconds)
             ),
             isLive: songInfo.videoDetails.isLive,
+            isYoutubeBased: true,
           };
           songQueue.push(song);
           return song;
@@ -79,6 +139,7 @@ export const addSong = async (
             thumbnail_url: songInfo[0].thumbnails[0].url,
             duration: songInfo[0].durationInSec,
             seek: 0,
+            isYoutubeBased: true,
           };
 
           songQueue.push(song);
@@ -99,6 +160,7 @@ export const addSong = async (
             thumbnail_url: track.thumbnail.url,
             duration: track.durationInSec,
             seek: 0,
+            isYoutubeBased: false,
           };
 
           songQueue.push(song);
@@ -108,6 +170,7 @@ export const addSong = async (
             thumbnail_url: track.thumbnail.url,
             duration: track.durationInSec,
             seek: 0,
+            isYoutubeBased: false,
           };
         } else if (songInfo.type === "album") {
           const album = songInfo as SpotifyAlbum;
@@ -124,6 +187,7 @@ export const addSong = async (
                 : album.thumbnail.url,
               duration: t.durationInSec,
               seek: 0,
+              isYoutubeBased: false,
             };
           });
 
@@ -136,6 +200,7 @@ export const addSong = async (
             thumbnail_url: album.thumbnail.url,
             duration: songs[0].duration,
             seek: 0,
+            isYoutubeBased: false,
           };
         } else if (songInfo.type === "playlist") {
           const playlist = songInfo as SpotifyPlaylist;
@@ -150,6 +215,7 @@ export const addSong = async (
                 : playlist.thumbnail.url,
               duration: t.durationInSec,
               seek: 0,
+              isYoutubeBased: false,
             };
           });
 
@@ -162,6 +228,7 @@ export const addSong = async (
             thumbnail_url: playlist.thumbnail.url,
             duration: songs[0].duration,
             seek: 0,
+            isYoutubeBased: false,
           };
         }
       } else {
@@ -172,6 +239,7 @@ export const addSong = async (
           thumbnail_url: songInfo[0].thumbnails[0].url,
           duration: songInfo[0].durationInSec,
           seek: 0,
+          isYoutubeBased: false,
         };
 
         songQueue.push(song);

@@ -30,6 +30,7 @@ const searchSong = async (
           thumbnail_url: song.thumbnails[0].url,
           duration: song.durationInSec,
           seek: 0,
+          isYoutubeBased: true,
         };
       });
 

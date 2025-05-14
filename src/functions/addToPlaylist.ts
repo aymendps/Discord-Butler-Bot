@@ -164,6 +164,7 @@ export const executeAddToPlaylist = async (
           thumbnail_url: results.videoDetails.thumbnails[0].url,
           duration: Number(results.videoDetails.lengthSeconds),
           seek: 0,
+          isYoutubeBased: true,
         };
         await addToPlaylist(playlistID, toAdd);
         sendReplyFunction({
@@ -191,6 +192,7 @@ export const executeAddToPlaylist = async (
           thumbnail_url: song.thumbnails[0].url,
           duration: song.durationInSec,
           seek: 0,
+          isYoutubeBased: true,
         }));
         await addManyToPlaylist(playlistID, toAdd);
         sendReplyFunction({
@@ -219,6 +221,7 @@ export const executeAddToPlaylist = async (
           thumbnail_url: results[0].thumbnails[0].url,
           duration: results[0].durationInSec,
           seek: 0,
+          isYoutubeBased: true,
         };
         await addToPlaylist(playlistID, toAdd);
         sendReplyFunction({

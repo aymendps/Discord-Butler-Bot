@@ -48,6 +48,7 @@ export const executePlaySongFromFile = async (
       thumbnail_url: "https://cdn-icons-png.flaticon.com/512/4722/4722923.png",
       seek: 0,
       isFile: true,
+      isYoutubeBased: false,
     };
 
     executePlaySong(
