@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   GuildMember,
   InteractionReplyOptions,
@@ -29,7 +29,7 @@ export const PlayFavoritesCommand: Command = {
   ],
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
     audioPlayer: AudioPlayer
   ) => {

@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
   ApplicationCommandOptionType,
@@ -22,7 +22,7 @@ export const AddSongCommand: Command = {
   ],
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue
   ) => {
     executeAddSong(

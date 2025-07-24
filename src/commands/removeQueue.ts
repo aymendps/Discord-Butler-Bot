@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
 } from "discord.js";
@@ -13,7 +13,7 @@ export const RemoveQueueCommand: Command = {
   description: "Remove all songs from the queue",
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue
   ) => {
     executeRemoveQueue(songQueue, async (options: InteractionReplyOptions) => {

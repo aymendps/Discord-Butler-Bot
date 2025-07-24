@@ -1,6 +1,6 @@
 import { AudioPlayer } from "@discordjs/voice";
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   GuildMember,
   InteractionReplyOptions,
@@ -24,7 +24,7 @@ export const SeekSongTimeCommand: Command = {
   ],
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
     audioPlayer: AudioPlayer
   ) => {

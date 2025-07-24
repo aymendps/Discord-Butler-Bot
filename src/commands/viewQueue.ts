@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
 } from "discord.js";
@@ -13,7 +13,7 @@ export const ViewQueueCommand: Command = {
   description: "View the songs in the queue with their current order",
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue
   ) => {
     executeViewQueue(songQueue, async (options: InteractionReplyOptions) => {

@@ -1,5 +1,10 @@
 import { AudioPlayer } from "@discordjs/voice";
-import { Client, Interaction, CommandInteraction } from "discord.js";
+import {
+  Client,
+  Interaction,
+  CommandInteraction,
+  ChatInputCommandInteraction,
+} from "discord.js";
 import { Commands } from "../commands";
 import { SongQueue } from "../interfaces/song";
 
@@ -24,7 +29,12 @@ const handleSlashCommand = async (
 
   await interaction.deferReply();
 
-  slashCommand.run(client, interaction, songQueue, audioPlayer);
+  slashCommand.run(
+    client,
+    interaction as ChatInputCommandInteraction,
+    songQueue,
+    audioPlayer
+  );
 };
 
 export default (

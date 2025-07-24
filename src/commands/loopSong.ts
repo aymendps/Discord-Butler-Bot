@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
 } from "discord.js";
@@ -13,7 +13,7 @@ export const LoopSongCommand: Command = {
   description: "Toggles loop mode. Keep playing the same song!",
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue
   ) => {
     executeLoopSong(songQueue, async (options: InteractionReplyOptions) => {

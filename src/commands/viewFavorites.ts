@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   GuildMember,
   InteractionReplyOptions,
@@ -20,7 +20,7 @@ export const ViewFavoritesCommand: Command = {
       type: ApplicationCommandOptionType.String,
     },
   ],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     executeViewFavorites(
       client,
       interaction.member as GuildMember,

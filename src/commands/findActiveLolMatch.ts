@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
   ApplicationCommandOptionType,
@@ -20,7 +20,7 @@ export const findActiveLolMatchCommand: Command = {
       required: true,
     },
   ],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     executeFindLolMatch(
       interaction.options.get("summoner").value as string,
       async (options: InteractionReplyOptions) => {

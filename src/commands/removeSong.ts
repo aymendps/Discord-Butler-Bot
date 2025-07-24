@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   GuildMember,
   InteractionReplyOptions,
@@ -25,7 +25,7 @@ export const RemoveSongCommand: Command = {
   ],
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue
   ) => {
     executeRemoveSong(

@@ -1,6 +1,6 @@
 import { AudioPlayer } from "@discordjs/voice";
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   GuildMember,
   InteractionReplyOptions,
@@ -15,7 +15,7 @@ export const StopSongCommand: Command = {
   description: "Stop playing music and emtpy the queue",
   run: async (
     client: Client,
-    interaction: CommandInteraction,
+    interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
     audioPlayer: AudioPlayer
   ) => {

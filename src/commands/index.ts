@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   InteractionReplyOptions,
   MessageCreateOptions,
   TextChannel,
@@ -29,7 +29,7 @@ import { PlayPlaylistCommand } from "./playPlaylist";
 import { PlaySongFromFileCommand } from "./playSongFromFile";
 
 export const sendInteractionReply = async (
-  interaction: CommandInteraction,
+  interaction: ChatInputCommandInteraction,
   options: InteractionReplyOptions
 ) => {
   try {

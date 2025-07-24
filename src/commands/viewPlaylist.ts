@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   InteractionReplyOptions,
   ApplicationCommandOptionType,
@@ -19,7 +19,7 @@ export const ViewPlaylistCommand: Command = {
       required: true,
     },
   ],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     executeViewPlaylist(
       interaction.options.get("playlist", true).value as string,
       async (options: InteractionReplyOptions) => {

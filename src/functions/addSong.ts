@@ -239,7 +239,7 @@ export const addSong = async (
           thumbnail_url: songInfo[0].thumbnails[0].url,
           duration: songInfo[0].durationInSec,
           seek: 0,
-          isYoutubeBased: false,
+          isYoutubeBased: true,
         };
 
         songQueue.push(song);
