@@ -8,9 +8,10 @@ import {
   MessageActionRowComponentBuilder,
 } from "@discordjs/builders";
 import * as ytdl from "@distube/ytdl-core";
-import { ytdlAgent } from "../main";
+import { getInnertubeAgent, ytdlAgent } from "../main";
+import { YTNodes } from "youtubei.js";
 
-const SUGGEST_MAX_SONGS = 5;
+const SUGGEST_MAX_SONGS = 10;
 
 const suggestSong = async (
   nameArg: string,
@@ -32,33 +33,50 @@ const suggestSong = async (
       songInfo = await ytdl.getBasicInfo(results[0].url, { agent: ytdlAgent });
     }
 
-    if (songInfo.related_videos.length > SUGGEST_MAX_SONGS) {
-      songInfo.related_videos = songInfo.related_videos.slice(
-        0,
-        SUGGEST_MAX_SONGS
-      );
+    // if we didnt find anything using first method, try the second one
+    if (songInfo.related_videos.length === 0) {
+      const agent = await getInnertubeAgent();
+      const video = await agent.getInfo(songInfo.videoDetails.videoId);
+      const relatedVideos = video.watch_next_feed;
+
+      const suggestedSongs = new Array<Song>();
+
+      for (const video of relatedVideos) {
+        if (video.type === "LockupView") {
+          const lockup = video.as(YTNodes.LockupView);
+          if (lockup) {
+            if (lockup.content_id && lockup.content_id.length <= 11) {
+              suggestedSongs.push({
+                title: lockup.metadata.title.toString(),
+                url: `https://www.youtube.com/watch?v=${lockup.content_id}`,
+                thumbnail_url: `https://img.youtube.com/vi/${lockup.content_id}/0.jpg`,
+                duration: -1,
+                seek: 0,
+                isYoutubeBased: true,
+              });
+            }
+          }
+        }
+      }
+
+      return suggestedSongs;
+    } else {
+      const suggestedSongs = new Array<Song>();
+
+      for (let index = 0; index < songInfo.related_videos.length; index++) {
+        const relatedSong = songInfo.related_videos[index];
+        suggestedSongs.push({
+          title: relatedSong.title,
+          url: `https://www.youtube.com/watch?v=${relatedSong.id}`,
+          thumbnail_url: relatedSong.thumbnails[0].url,
+          duration: Number(relatedSong.length_seconds),
+          seek: 0,
+          isYoutubeBased: true,
+        });
+      }
+
+      return suggestedSongs;
     }
-
-    const suggestedSongs = new Array<Song>();
-
-    for (let index = 0; index < songInfo.related_videos.length; index++) {
-      const relatedSong = songInfo.related_videos[index];
-      // const info = await play.video_basic_info(songUrl);
-      // const info = await ytdl.getBasicInfo(
-      //   `https://www.youtube.com/watch?v=${songUrl.id}`,
-      //   { agent: ytdlAgent }
-      // );
-      suggestedSongs.push({
-        title: relatedSong.title,
-        url: `https://www.youtube.com/watch?v=${relatedSong.id}`,
-        thumbnail_url: relatedSong.thumbnails[0].url,
-        duration: Number(relatedSong.length_seconds),
-        seek: 0,
-        isYoutubeBased: true,
-      });
-    }
-
-    return suggestedSongs;
   } catch (error) {
     console.log(error);
     return new Array<Song>();
@@ -71,7 +89,7 @@ export const executeSuggestSong = async (
   sendReplyFunction: sendReplyFunction
 ) => {
   try {
-    const suggestedSongs = await suggestSong(nameArg, songQueue);
+    let suggestedSongs = await suggestSong(nameArg, songQueue);
     if (suggestedSongs.length === 0) {
       sendReplyFunction({
         embeds: [
@@ -84,6 +102,10 @@ export const executeSuggestSong = async (
         ],
       });
     } else {
+      if (suggestedSongs.length > SUGGEST_MAX_SONGS) {
+        suggestedSongs = suggestedSongs.slice(0, SUGGEST_MAX_SONGS);
+      }
+
       const resultsEmbed = suggestedSongs.map((song, index) => {
         return new EmbedBuilder()
           .setTitle(`Suggested Result #${index + 1}`)
@@ -127,17 +149,35 @@ export const executeSuggestSong = async (
         );
 
         const song = suggestedSongs[index];
-        songQueue.push(song);
+
+        // search again because cached info might be unreliable depending on executed method, like duration wont be set correctly for example
+        const songInfo = await ytdl.getBasicInfo(song.url, {
+          agent: ytdlAgent,
+        });
+
+        const verifiedSong: Song = {
+          title: songInfo.videoDetails.title,
+          url: songInfo.videoDetails.video_url,
+          thumbnail_url: songInfo.videoDetails.thumbnails[0].url,
+          duration: Number(songInfo.videoDetails.lengthSeconds),
+          seek: 0,
+          isYoutubeBased: true,
+        };
+
+        songQueue.push(verifiedSong);
 
         sendReplyFunction({
           embeds: [
             new EmbedBuilder()
-              .setTitle(song.title)
-              .setURL(song.url)
+              .setTitle(verifiedSong.title)
+              .setURL(verifiedSong.url)
               .setDescription(
-                "Added " + song.title + " to the queue: #" + songQueue.length()
+                "Added " +
+                  verifiedSong.title +
+                  " to the queue: #" +
+                  songQueue.length()
               )
-              .setThumbnail(song.thumbnail_url)
+              .setThumbnail(verifiedSong.thumbnail_url)
               .setColor("DarkGreen"),
           ],
         });

@@ -160,7 +160,7 @@ export const addSong = async (
             thumbnail_url: track.thumbnail.url,
             duration: track.durationInSec,
             seek: 0,
-            isYoutubeBased: false,
+            isYoutubeBased: true,
           };
 
           songQueue.push(song);
@@ -170,7 +170,7 @@ export const addSong = async (
             thumbnail_url: track.thumbnail.url,
             duration: track.durationInSec,
             seek: 0,
-            isYoutubeBased: false,
+            isYoutubeBased: true,
           };
         } else if (songInfo.type === "album") {
           const album = songInfo as SpotifyAlbum;
@@ -187,7 +187,7 @@ export const addSong = async (
                 : album.thumbnail.url,
               duration: t.durationInSec,
               seek: 0,
-              isYoutubeBased: false,
+              isYoutubeBased: true,
             };
           });
 
@@ -200,7 +200,7 @@ export const addSong = async (
             thumbnail_url: album.thumbnail.url,
             duration: songs[0].duration,
             seek: 0,
-            isYoutubeBased: false,
+            isYoutubeBased: true,
           };
         } else if (songInfo.type === "playlist") {
           const playlist = songInfo as SpotifyPlaylist;
@@ -215,7 +215,7 @@ export const addSong = async (
                 : playlist.thumbnail.url,
               duration: t.durationInSec,
               seek: 0,
-              isYoutubeBased: false,
+              isYoutubeBased: true,
             };
           });
 
@@ -228,7 +228,7 @@ export const addSong = async (
             thumbnail_url: playlist.thumbnail.url,
             duration: songs[0].duration,
             seek: 0,
-            isYoutubeBased: false,
+            isYoutubeBased: true,
           };
         }
       } else {

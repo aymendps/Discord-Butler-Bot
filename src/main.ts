@@ -9,6 +9,7 @@ import { SongQueue } from "./interfaces/song";
 import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import * as ytdl from "@distube/ytdl-core";
 import * as fs from "fs";
+import { Innertube } from "youtubei.js";
 
 // @ts-ignore
 
@@ -17,6 +18,23 @@ const agent = JSON.parse(
 );
 
 export const ytdlAgent = ytdl.createAgent(agent);
+
+let innertubeAgent: Innertube = null;
+
+// read string from .data/innertube.txt
+const innertubeData = fs.readFileSync(
+  __dirname + "/../.data/innertube.txt",
+  "utf8"
+);
+
+export async function getInnertubeAgent(): Promise<Innertube> {
+  if (!innertubeAgent) {
+    innertubeAgent = await Innertube.create({
+      cookie: innertubeData,
+    });
+  }
+  return innertubeAgent;
+}
 
 const client = new Discord.Client({
   intents: [
