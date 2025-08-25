@@ -10,6 +10,7 @@ import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import * as ytdl from "@distube/ytdl-core";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
+import { AIChatManager } from "./AI/AIChatManager";
 
 // @ts-ignore
 
@@ -48,6 +49,7 @@ const client = new Discord.Client({
 });
 
 const songQueue = new SongQueue();
+const AIChatManagerInstance = new AIChatManager();
 
 const audioPlayer = createAudioPlayer({
   behaviors: {
@@ -58,7 +60,7 @@ const audioPlayer = createAudioPlayer({
 const main = async () => {
   try {
     console.log("Establishing Butler Bot's listeners...");
-    establishListeners(client, songQueue, audioPlayer);
+    establishListeners(client, songQueue, audioPlayer, AIChatManagerInstance);
     console.log("Butler Bot is starting...");
     await client.login(TOKEN);
   } catch (error) {

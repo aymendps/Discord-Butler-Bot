@@ -4,15 +4,17 @@ import { SongQueue } from "../interfaces/song";
 import interactionCreate from "./interactionCreate";
 import messageCreate from "./messageCreate";
 import ready from "./ready";
+import { AIChatManager } from "../AI/AIChatManager";
 
 const establishListeners = (
   client: Client,
   songQueue: SongQueue,
-  audioPlayer: AudioPlayer
+  audioPlayer: AudioPlayer,
+  AIChatManagerInstance: AIChatManager
 ) => {
   ready(client);
   interactionCreate(client, songQueue, audioPlayer);
-  messageCreate(client, songQueue, audioPlayer);
+  messageCreate(client, songQueue, audioPlayer, AIChatManagerInstance);
 };
 
 export default establishListeners;

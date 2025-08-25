@@ -27,9 +27,11 @@ import { executeViewPlaylist } from "../functions/viewPlaylist";
 import { executeViewPlaylistAll } from "../functions/viewPlaylistAll";
 import { executePlayPlaylist } from "../functions/playPlaylist";
 import { executePlaySongFromFile } from "../functions/playSongFromFile";
+import { AIChatManager } from "../AI/AIChatManager";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
+    !message.author.bot &&
     message.content.toLowerCase().includes("good bot") &&
     !message.content.startsWith(PREFIX)
   ) {
@@ -38,6 +40,7 @@ const handleMemes = (message: Message, sendReply: Function) => {
   }
 
   if (
+    !message.author.bot &&
     message.content.toLowerCase().includes("baba") &&
     !message.content.startsWith(PREFIX)
   ) {
@@ -63,13 +66,35 @@ const handleMemes = (message: Message, sendReply: Function) => {
 export default (
   client: Client,
   songQueue: SongQueue,
-  audioPlayer: AudioPlayer
+  audioPlayer: AudioPlayer,
+  AIChatManagerInstance: AIChatManager
 ) => {
   client.on("messageCreate", async (message: Message) => {
     const sendReply = async (options: MessageCreateOptions) => {
       const channel = message.channel as TextChannel;
       return await channel.send(options);
     };
+
+    if (!message.author.bot && message.mentions.has(client.user)) {
+      const waitingMessage = await sendReply({
+        content: "Just a sec! I'm thinking...",
+      });
+      try {
+        const prompt = message.content.replace(/<@!?(\d+)>/g, "").trim();
+        const chat = await AIChatManagerInstance.generateChatResponse(
+          message.member.user.username,
+          prompt
+        );
+        await waitingMessage.edit({ content: chat.message.content });
+      } catch (error) {
+        console.log(error);
+        await waitingMessage.edit({
+          content:
+            "Whoops! An error occured and I couldn't generate a response! Try again later!",
+        });
+      }
+      return;
+    }
 
     handleMemes(message, sendReply);
 
