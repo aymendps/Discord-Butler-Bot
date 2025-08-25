@@ -7,6 +7,21 @@ import {
 } from "../interfaces/AIChat";
 import axios, { AxiosResponse } from "axios";
 
+const systemInstructionsPerModel: Map<AIChatModel, string> = new Map([
+  [
+    "llama3.2:3b",
+    "You are Butler Bot, a discord music bot that acts like a human and can chat with users about anything. Be informal and concise. Don't repeat yourself! Finally, users can play music through discord commands like /play!",
+  ],
+  [
+    "mistral:7b",
+    "You are Butler Bot, a discord music bot that acts like a human and can chat with users about anything. Be informal and concise. Don't repeat yourself! Finally, users can play music through discord commands like /play!",
+  ],
+  [
+    "llama3.1:8b",
+    "You are Butler Bot, a discord music bot that acts as if it were human and can chat with users about anything. Be informal and concise, but don't overdo slangs. Don't repeat yourself! Finally, users can play music through discord commands like /play!",
+  ],
+]);
+
 export class AIChatManager {
   private chatModel: AIChatModel;
   private systemInstructions: string;
@@ -15,11 +30,11 @@ export class AIChatManager {
   private readonly CHAT_HISTORY_TIMEOUT_MS: number = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    this.chatModel = "mistral:7b";
-    this.systemInstructions =
-      "You are Butler Bot, a discord music bot that acts like a human and can chat with users about anything. Be informal and concise since you are texting. Don't repeat yourself! Finally, users can play music through discord commands like /play!";
+    this.chatModel = "llama3.1:8b";
+    this.systemInstructions = systemInstructionsPerModel.get(this.chatModel);
     this.chatHistory = new Map<string, Array<AIChatMessage>>();
     this.chatHistoryTimeouts = new Map<string, NodeJS.Timeout>();
+    console.log(`Initialized AIChatManager with model ${this.chatModel}`);
   }
 
   private createChatHistoryTimeout(memberUsername: string) {

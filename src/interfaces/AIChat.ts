@@ -1,4 +1,4 @@
-export type AIChatModel = "mistral:7b" | "llama3.2:3b";
+export type AIChatModel = "mistral:7b" | "llama3.2:3b" | "llama3.1:8b";
 export type AIChatKeepAlive = "1m" | "2m" | "5m" | "0" | "-1";
 export type AIChatMessageRole = "system" | "user" | "assistant";
 
