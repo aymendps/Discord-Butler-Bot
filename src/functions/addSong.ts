@@ -54,6 +54,12 @@ const SUPPORTED_ALT_PLATFORMS = [
     thumbnail:
       "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Twitch_Glitch_Logo_Purple.svg/1756px-Twitch_Glitch_Logo_Purple.svg.png",
   },
+  {
+    prefix: "soundcloud.com",
+    title: "SoundCloud",
+    thumbnail:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Antu_soundcloud.svg/800px-Antu_soundcloud.svg.png",
+  },
 ];
 
 export const addSong = async (
