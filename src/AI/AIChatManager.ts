@@ -17,7 +17,7 @@ export class AIChatManager {
   constructor() {
     this.chatModel = "mistral:7b";
     this.systemInstructions =
-      "You are Butler Bot, a discord music bot that acts and speaks like a human and can chat with users about anything. Be informal and concise. Don't repeat yourself! Finally, users can play music through discord commands like /play!";
+      "You are Butler Bot, a discord music bot that acts like a human and can chat with users about anything. Be informal and concise since you are texting. Don't repeat yourself! Finally, users can play music through discord commands like /play!";
     this.chatHistory = new Map<string, Array<AIChatMessage>>();
     this.chatHistoryTimeouts = new Map<string, NodeJS.Timeout>();
   }
@@ -54,6 +54,15 @@ export class AIChatManager {
     }
 
     return this.chatHistory.get(memberUsername);
+  }
+
+  public clearChatHistory(memberUsername: string) {
+    if (this.chatHistory.has(memberUsername)) {
+      clearTimeout(this.chatHistoryTimeouts.get(memberUsername));
+      this.chatHistory.delete(memberUsername);
+      this.chatHistoryTimeouts.delete(memberUsername);
+      console.log(`Cleared chat history for ${memberUsername} through command`);
+    }
   }
 
   public async generateChatResponse(

@@ -7,12 +7,14 @@ import {
 } from "discord.js";
 import { Commands } from "../commands";
 import { SongQueue } from "../interfaces/song";
+import { AIChatManager } from "../AI/AIChatManager";
 
 const handleSlashCommand = async (
   client: Client,
   interaction: CommandInteraction,
   songQueue: SongQueue,
-  audioPlayer: AudioPlayer
+  audioPlayer: AudioPlayer,
+  AIChatManagerInstance: AIChatManager
 ) => {
   const slashCommand = Commands.find(
     (command) => command.name === interaction.commandName
@@ -33,18 +35,26 @@ const handleSlashCommand = async (
     client,
     interaction as ChatInputCommandInteraction,
     songQueue,
-    audioPlayer
+    audioPlayer,
+    AIChatManagerInstance
   );
 };
 
 export default (
   client: Client,
   songQueue: SongQueue,
-  audioPlayer: AudioPlayer
+  audioPlayer: AudioPlayer,
+  AIChatManagerInstance: AIChatManager
 ) => {
   client.on("interactionCreate", async (interaction: Interaction) => {
     if (interaction.isCommand() || interaction.isContextMenuCommand()) {
-      await handleSlashCommand(client, interaction, songQueue, audioPlayer);
+      await handleSlashCommand(
+        client,
+        interaction,
+        songQueue,
+        audioPlayer,
+        AIChatManagerInstance
+      );
     }
   });
 };

@@ -13,7 +13,7 @@ const establishListeners = (
   AIChatManagerInstance: AIChatManager
 ) => {
   ready(client);
-  interactionCreate(client, songQueue, audioPlayer);
+  interactionCreate(client, songQueue, audioPlayer, AIChatManagerInstance);
   messageCreate(client, songQueue, audioPlayer, AIChatManagerInstance);
 };
 

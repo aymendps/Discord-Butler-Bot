@@ -27,6 +27,7 @@ import { ViewPlaylistCommand } from "./viewPlaylist";
 import { ViewPlaylistAllCommand } from "./viewPlaylistAll";
 import { PlayPlaylistCommand } from "./playPlaylist";
 import { PlaySongFromFileCommand } from "./playSongFromFile";
+import { AIClearChatHistoryCommand } from "./AIClearChatHistory";
 
 export const sendInteractionReply = async (
   interaction: ChatInputCommandInteraction,
@@ -63,4 +64,5 @@ export const Commands: Command[] = [
   ViewPlaylistAllCommand,
   FindLolPlayerCommand,
   findActiveLolMatchCommand,
+  AIClearChatHistoryCommand,
 ];
