@@ -6,7 +6,7 @@ import {
   MessageCreateOptions,
   TextChannel,
 } from "discord.js";
-import { PREFIX } from "../config";
+import { BUTLER_BOT_CHANNEL_NAME, PREFIX } from "../config";
 import { executeAddSong } from "../functions/addSong";
 import { executeFindLolMatch } from "../functions/findActiveLolMatch";
 import { executeFindLolPlayer } from "../functions/findLolPlayer";
@@ -83,7 +83,7 @@ export default (
 
     if (!message.author.bot && message.mentions.has(client.user)) {
       const requiredChannel = message.guild.channels.cache.find(
-        (channel) => channel.name === "butler-bot-office"
+        (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME
       );
 
       if (requiredChannel.id !== message.channel.id) {
