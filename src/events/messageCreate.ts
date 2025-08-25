@@ -34,6 +34,7 @@ import { executeViewPlaylistAll } from "../functions/viewPlaylistAll";
 import { executePlayPlaylist } from "../functions/playPlaylist";
 import { executePlaySongFromFile } from "../functions/playSongFromFile";
 import { AIChatManager } from "../AI/AIChatManager";
+import { executeAIClearChatHistory } from "../AI/AIClearChatHistory";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
@@ -119,7 +120,13 @@ export default (
 
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 
-    if (message.content.startsWith(PREFIX + "play-faves")) {
+    if (message.content.startsWith(PREFIX + "ai-clear-chat")) {
+      executeAIClearChatHistory(
+        message.member,
+        AIChatManagerInstance,
+        sendReply
+      );
+    } else if (message.content.startsWith(PREFIX + "play-faves")) {
       const args = message.content.substring(11).trim().split(/\s+/);
       const memberTag = args.filter((a) => a.startsWith("<@"))[0];
       const number = args.filter((a) => !a.startsWith("<@"))[0];

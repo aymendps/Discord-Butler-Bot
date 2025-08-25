@@ -56,13 +56,15 @@ export class AIChatManager {
     return this.chatHistory.get(memberUsername);
   }
 
-  public clearChatHistory(memberUsername: string) {
+  public clearChatHistory(memberUsername: string): boolean {
     if (this.chatHistory.has(memberUsername)) {
       clearTimeout(this.chatHistoryTimeouts.get(memberUsername));
       this.chatHistory.delete(memberUsername);
       this.chatHistoryTimeouts.delete(memberUsername);
       console.log(`Cleared chat history for ${memberUsername} through command`);
+      return true;
     }
+    return false;
   }
 
   public async generateChatResponse(

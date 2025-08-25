@@ -7,15 +7,28 @@ export const executeAIClearChatHistory = (
   AIChatManagerInstance: AIChatManager,
   sendReplyFunction: sendReplyFunction
 ) => {
-  AIChatManagerInstance.clearChatHistory(member.user.username);
-  sendReplyFunction({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle("It's like it was never there!")
-        .setDescription(
-          `Cleared chat history for ${member.user.username}. Feel free to start a new chat with me!`
-        )
-        .setColor("DarkGreen"),
-    ],
-  });
+  const didExist = AIChatManagerInstance.clearChatHistory(member.user.username);
+  if (didExist) {
+    sendReplyFunction({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("It's like it was never there!")
+          .setDescription(
+            `Cleared chat history for ${member.user.username}. Feel free to start a new chat with me!`
+          )
+          .setColor("DarkGreen"),
+      ],
+    });
+  } else {
+    sendReplyFunction({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("No chat history found!")
+          .setDescription(
+            `I couldn't find any chat history for ${member.user.username}. You can start chatting with me anytime!`
+          )
+          .setColor("DarkGold"),
+      ],
+    });
+  }
 };
