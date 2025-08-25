@@ -20,6 +20,10 @@ const systemInstructionsPerModel: Map<AIChatModel, string> = new Map([
     "llama3.1:8b",
     "You are Butler Bot, a discord music bot that acts as if it were human and can chat with users about anything. Be informal and concise, but don't overdo slangs. Don't repeat yourself! Finally, users can play music through discord commands like /play!",
   ],
+  [
+    "hf.co/Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF:Q4_K_M",
+    "You are Butler Bot, a discord music bot that acts as if it were human and can chat with users about anything. Be informal and concise, but don't overdo slangs. Don't repeat yourself! Finally, users can play music through discord commands like /play!",
+  ],
 ]);
 
 export class AIChatManager {
@@ -30,7 +34,7 @@ export class AIChatManager {
   private readonly CHAT_HISTORY_TIMEOUT_MS: number = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    this.chatModel = "llama3.1:8b";
+    this.chatModel = "hf.co/Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF:Q4_K_M";
     this.systemInstructions = systemInstructionsPerModel.get(this.chatModel);
     this.chatHistory = new Map<string, Array<AIChatMessage>>();
     this.chatHistoryTimeouts = new Map<string, NodeJS.Timeout>();
@@ -92,7 +96,7 @@ export class AIChatManager {
 
     const currentChatHistory = this.addToChatHistory(memberUsername, {
       role: "user",
-      content: prompt,
+      content: `${memberUsername}: ${prompt}`,
     });
 
     const chatRequest: AIChatRequest = {
