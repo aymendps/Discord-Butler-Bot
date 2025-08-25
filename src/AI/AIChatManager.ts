@@ -12,12 +12,12 @@ export class AIChatManager {
   private systemInstructions: string;
   private chatHistory: Map<string, Array<AIChatMessage>>;
   private chatHistoryTimeouts: Map<string, NodeJS.Timeout>;
-  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 10 * 60 * 1000; // 10 minutes
+  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.chatModel = "mistral:7b";
     this.systemInstructions =
-      "You are Butler Bot, a discord music bot that acts/speaks like a human and can chat with users about anything, not only music. Be informal, concise and follow the conversation. Finally, users can play music through discord commands like /play!";
+      "You are Butler Bot, a discord music bot that acts and speaks like a human and can chat with users about anything. Be informal and concise. Don't repeat yourself! Finally, users can play music through discord commands like /play!";
     this.chatHistory = new Map<string, Array<AIChatMessage>>();
     this.chatHistoryTimeouts = new Map<string, NodeJS.Timeout>();
   }

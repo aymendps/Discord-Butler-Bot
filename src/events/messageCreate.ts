@@ -1,5 +1,11 @@
 import { AudioPlayer } from "@discordjs/voice";
-import { Client, Message, MessageCreateOptions, TextChannel } from "discord.js";
+import {
+  channelMention,
+  Client,
+  Message,
+  MessageCreateOptions,
+  TextChannel,
+} from "discord.js";
 import { PREFIX } from "../config";
 import { executeAddSong } from "../functions/addSong";
 import { executeFindLolMatch } from "../functions/findActiveLolMatch";
@@ -76,6 +82,19 @@ export default (
     };
 
     if (!message.author.bot && message.mentions.has(client.user)) {
+      const requiredChannel = message.guild.channels.cache.find(
+        (channel) => channel.name === "butler-bot-office"
+      );
+
+      if (requiredChannel.id !== message.channel.id) {
+        await sendReply({
+          content: `Hey! Follow me to my ${channelMention(
+            requiredChannel.id
+          )} and we'll continue there. We don't want to bother the others in this channel!`,
+        });
+        return;
+      }
+
       const waitingMessage = await sendReply({
         content: "Just a sec! I'm thinking...",
       });
