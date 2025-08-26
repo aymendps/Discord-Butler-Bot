@@ -1,19 +1,20 @@
 import {
   ChatInputCommandInteraction,
   Client,
-  GuildMember,
   InteractionReplyOptions,
+  ApplicationCommandOptionType,
+  GuildMember,
 } from "discord.js";
 import { sendInteractionReply } from ".";
 import { Command } from "../interfaces/command";
-import { executeAIClearChatHistory } from "../AI/AIClearChatHistory";
 import { SongQueue } from "../interfaces/song";
 import { AudioPlayer } from "@discordjs/voice";
 import { AIChatManager } from "../AI/AIChatManager";
+import { executeAIChatLeaveConversation } from "../AI/AIChatLeaveConversation";
 
-export const AIClearChatHistoryCommand: Command = {
-  name: "ai-clear-chat",
-  description: "Clear your chat history with Butler Bot's AI",
+export const AIChatLeaveConversationCommand: Command = {
+  name: "ai-leave-convo",
+  description: "Leave the current conversation with Butler Bot's AI",
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
@@ -21,7 +22,7 @@ export const AIClearChatHistoryCommand: Command = {
     audioPlayer: AudioPlayer,
     AIChatManagerInstance: AIChatManager
   ) => {
-    executeAIClearChatHistory(
+    executeAIChatLeaveConversation(
       interaction.member as GuildMember,
       AIChatManagerInstance,
       async (options: InteractionReplyOptions) => {

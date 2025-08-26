@@ -4,6 +4,7 @@ import {
   Client,
   Message,
   MessageCreateOptions,
+  subtext,
   TextChannel,
 } from "discord.js";
 import { BUTLER_BOT_CHANNEL_NAME, PREFIX } from "../config";
@@ -34,7 +35,8 @@ import { executeViewPlaylistAll } from "../functions/viewPlaylistAll";
 import { executePlayPlaylist } from "../functions/playPlaylist";
 import { executePlaySongFromFile } from "../functions/playSongFromFile";
 import { AIChatManager } from "../AI/AIChatManager";
-import { executeAIClearChatHistory } from "../AI/AIClearChatHistory";
+import { executeAIChatJoinConversation } from "../AI/AIChatJoinConversation";
+import { executeAIChatLeaveConversation } from "../AI/AIChatLeaveConversation";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
@@ -105,7 +107,11 @@ export default (
           message.member.user.username,
           prompt
         );
-        await waitingMessage.edit({ content: chat.message.content });
+        await waitingMessage.edit({
+          content: `${subtext("Use this Convo ID to join in:")} ${
+            chat.conversationID
+          }\n${chat.message}`,
+        });
       } catch (error) {
         console.log(error);
         await waitingMessage.edit({
@@ -120,8 +126,16 @@ export default (
 
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 
-    if (message.content.startsWith(PREFIX + "ai-clear-chat")) {
-      executeAIClearChatHistory(
+    if (message.content.startsWith(PREFIX + "ai-join-convo")) {
+      const args = message.content.substring(14).trim();
+      executeAIChatJoinConversation(
+        message.member,
+        args,
+        AIChatManagerInstance,
+        sendReply
+      );
+    } else if (message.content.startsWith(PREFIX + "ai-leave-convo")) {
+      executeAIChatLeaveConversation(
         message.member,
         AIChatManagerInstance,
         sendReply

@@ -27,7 +27,8 @@ import { ViewPlaylistCommand } from "./viewPlaylist";
 import { ViewPlaylistAllCommand } from "./viewPlaylistAll";
 import { PlayPlaylistCommand } from "./playPlaylist";
 import { PlaySongFromFileCommand } from "./playSongFromFile";
-import { AIClearChatHistoryCommand } from "./AIClearChatHistory";
+import { AIChatJoinConversationCommand } from "./AIChatJoinConversation";
+import { AIChatLeaveConversationCommand } from "./AIChatLeaveConversation";
 
 export const sendInteractionReply = async (
   interaction: ChatInputCommandInteraction,
@@ -64,5 +65,6 @@ export const Commands: Command[] = [
   ViewPlaylistAllCommand,
   FindLolPlayerCommand,
   findActiveLolMatchCommand,
-  AIClearChatHistoryCommand,
+  AIChatJoinConversationCommand,
+  AIChatLeaveConversationCommand,
 ];

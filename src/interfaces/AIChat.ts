@@ -32,3 +32,8 @@ export interface AIChatResponse {
   eval_count: number;
   eval_duration: number;
 }
+
+export interface AIChatConversationResponse {
+  conversationID: string;
+  message: string;
+}
