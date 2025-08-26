@@ -37,6 +37,7 @@ import { executePlaySongFromFile } from "../functions/playSongFromFile";
 import { AIChatManager } from "../AI/AIChatManager";
 import { executeAIChatJoinConversation } from "../AI/AIChatJoinConversation";
 import { executeAIChatLeaveConversation } from "../AI/AIChatLeaveConversation";
+import { decode } from "he";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
@@ -107,10 +108,13 @@ export default (
           message.member.user.username,
           prompt
         );
+        var chatMessage = decode(chat.message);
+        var cleanChatMessage = chatMessage.replace(/<\|im.*$/s, "").trim();
+
         await waitingMessage.edit({
           content: `${subtext("Use this Convo ID to join in:")} ${
             chat.conversationID
-          }\n${chat.message}`,
+          }\n${cleanChatMessage}`,
         });
       } catch (error) {
         console.log(error);
