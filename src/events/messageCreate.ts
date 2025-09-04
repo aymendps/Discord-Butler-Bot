@@ -85,7 +85,11 @@ export default (
       return await channel.send(options);
     };
 
-    if (!message.author.bot && message.mentions.has(client.user)) {
+    if (
+      !message.author.bot &&
+      message.mentions.has(client.user) &&
+      !message.mentions.everyone
+    ) {
       const requiredChannel = message.guild.channels.cache.find(
         (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME
       );

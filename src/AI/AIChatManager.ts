@@ -33,7 +33,7 @@ export class AIChatManager {
   private conversationHistory: Map<string, Array<AIChatMessage>>;
   private conversationHistoryTimeouts: Map<string, NodeJS.Timeout>;
   private userConversations: Map<string, string>;
-  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 5 * 60 * 1000; // 5 minutes
+  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 10 * 60 * 1000; // 10 minutes
 
   constructor() {
     this.chatModel = "hf.co/Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF:Q4_K_M";
@@ -145,7 +145,7 @@ export class AIChatManager {
 
     const chatResponseData = chatResponseJson.data;
 
-    console.log("Received AI Chat Response:\n", chatResponseData.message);
+    // console.log("Received AI Chat Response:\n", chatResponseData.message);
 
     if (chatResponseData) {
       this.addToChatHistory(conversationID, chatResponseData.message);
