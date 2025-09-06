@@ -37,7 +37,6 @@ import { executePlaySongFromFile } from "../functions/playSongFromFile";
 import { AIChatManager } from "../AI/AIChatManager";
 import { executeAIChatJoinConversation } from "../AI/AIChatJoinConversation";
 import { executeAIChatLeaveConversation } from "../AI/AIChatLeaveConversation";
-import { decode } from "he";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
@@ -73,64 +72,111 @@ const handleMemes = (message: Message, sendReply: Function) => {
   }
 };
 
+let REQUIRED_BOT_AI_CHANNEL_ID: string;
+
+const handleAIChatMessage = async (
+  client: Client,
+  songQueue: SongQueue,
+  audioPlayer: AudioPlayer,
+  AIChatManagerInstance: AIChatManager,
+  message: Message,
+  sendReply: (options: MessageCreateOptions) => Promise<Message<true>>
+): Promise<boolean> => {
+  if (message.content.startsWith(PREFIX)) return false;
+
+  if (
+    REQUIRED_BOT_AI_CHANNEL_ID === message.channel.id &&
+    !message.author.bot
+  ) {
+    const waitingMessage = await sendReply({
+      content: "Just a sec! I'm thinking...",
+    });
+    try {
+      const prompt = message.content.replace(/<@!?(\d+)>/g, "").trim();
+      const chat = await AIChatManagerInstance.generateChatResponse(
+        message.member.user.username,
+        message.member.user.id,
+        prompt,
+        sendReply
+      );
+
+      await waitingMessage.edit({
+        content: `${subtext("Use this Convo ID to join in:")} ${
+          chat.conversationID
+        }\n${chat.message}`,
+      });
+
+      for (const song of chat.songsToPlay) {
+        await executePlaySong(
+          client,
+          message.member,
+          song,
+          songQueue,
+          audioPlayer,
+          sendReply
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      await waitingMessage.edit({
+        content:
+          "Whoops! An error occured and I couldn't generate a response! Try again later!",
+      });
+    }
+    return true;
+  } else {
+    if (
+      !message.author.bot &&
+      message.mentions.has(client.user) &&
+      !message.mentions.everyone
+    ) {
+      await sendReply({
+        content: `Hey! Follow me to my ${channelMention(
+          REQUIRED_BOT_AI_CHANNEL_ID
+        )} and we'll continue there. We don't want to bother the others in this channel!`,
+      });
+      return true;
+    }
+    return false;
+  }
+};
+
 export default (
   client: Client,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
   AIChatManagerInstance: AIChatManager
 ) => {
+  client.once("messageCreate", async (message: Message) => {
+    const requiredBotAIChannel = message.guild.channels.cache.find(
+      (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME
+    );
+    REQUIRED_BOT_AI_CHANNEL_ID = requiredBotAIChannel.id;
+    console.log(
+      `Set required bot AI channel ID to ${REQUIRED_BOT_AI_CHANNEL_ID}`
+    );
+  });
+
   client.on("messageCreate", async (message: Message) => {
     const sendReply = async (options: MessageCreateOptions) => {
       const channel = message.channel as TextChannel;
       return await channel.send(options);
     };
 
+    handleMemes(message, sendReply);
+
     if (
-      !message.author.bot &&
-      message.mentions.has(client.user) &&
-      !message.mentions.everyone
+      await handleAIChatMessage(
+        client,
+        songQueue,
+        audioPlayer,
+        AIChatManagerInstance,
+        message,
+        sendReply
+      )
     ) {
-      const requiredChannel = message.guild.channels.cache.find(
-        (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME
-      );
-
-      if (requiredChannel.id !== message.channel.id) {
-        await sendReply({
-          content: `Hey! Follow me to my ${channelMention(
-            requiredChannel.id
-          )} and we'll continue there. We don't want to bother the others in this channel!`,
-        });
-        return;
-      }
-
-      const waitingMessage = await sendReply({
-        content: "Just a sec! I'm thinking...",
-      });
-      try {
-        const prompt = message.content.replace(/<@!?(\d+)>/g, "").trim();
-        const chat = await AIChatManagerInstance.generateChatResponse(
-          message.member.user.username,
-          prompt
-        );
-        var chatMessage = decode(chat.message);
-        var cleanChatMessage = chatMessage.replace(/<\|im.*$/s, "").trim();
-
-        await waitingMessage.edit({
-          content: `${subtext("Use this Convo ID to join in:")} ${
-            chat.conversationID
-          }\n${cleanChatMessage}`,
-        });
-      } catch (error) {
-        console.log(error);
-        await waitingMessage.edit({
-          content:
-            "Whoops! An error occured and I couldn't generate a response! Try again later!",
-        });
-      }
       return;
     }
-
-    handleMemes(message, sendReply);
 
     if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 

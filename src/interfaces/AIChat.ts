@@ -36,4 +36,5 @@ export interface AIChatResponse {
 export interface AIChatConversationResponse {
   conversationID: string;
   message: string;
+  songsToPlay: string[];
 }
