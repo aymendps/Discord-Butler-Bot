@@ -1,7 +1,7 @@
 import { ButtonStyle, EmbedBuilder } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import { Song, SongQueue } from "../interfaces/song";
-import play, { InfoData } from "play-dl";
+import play from "play-dl";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -13,70 +13,68 @@ import { YTNodes } from "youtubei.js";
 
 const SUGGEST_MAX_SONGS = 10;
 
-const suggestSong = async (
+export const suggestSong = async (
   nameArg: string,
   songQueue: SongQueue
 ): Promise<Song[]> => {
   try {
-    let songInfo: ytdl.videoInfo;
+    const agent = await getInnertubeAgent();
+
+    let searchQuery: string;
 
     if (!nameArg) {
       const current = songQueue.getCurrent();
       if (!current) {
         return new Array<Song>();
       }
-      // songInfo = await play.video_basic_info(current.url);
-      songInfo = await ytdl.getBasicInfo(current.url, { agent: ytdlAgent });
+      searchQuery = current.url;
     } else {
-      const results = await play.search(nameArg, { limit: 1 });
-      // songInfo = await play.video_basic_info(results[0].url);
-      songInfo = await ytdl.getBasicInfo(results[0].url, { agent: ytdlAgent });
+      searchQuery = nameArg;
     }
 
-    // if we didnt find anything using first method, try the second one
-    if (songInfo.related_videos.length === 0) {
-      const agent = await getInnertubeAgent();
-      const video = await agent.getInfo(songInfo.videoDetails.videoId);
-      const relatedVideos = video.watch_next_feed;
+    let songUrl: string;
 
-      const suggestedSongs = new Array<Song>();
+    if (play.yt_validate(searchQuery) !== "video") {
+      const songInfo = await play.search(searchQuery, { limit: 1 });
+      songUrl = songInfo[0].url;
+    } else {
+      songUrl = searchQuery;
+    }
 
-      for (const video of relatedVideos) {
-        if (video.type === "LockupView") {
-          const lockup = video.as(YTNodes.LockupView);
-          if (lockup) {
-            if (lockup.content_id && lockup.content_id.length <= 11) {
-              suggestedSongs.push({
-                title: lockup.metadata.title.toString(),
-                url: `https://www.youtube.com/watch?v=${lockup.content_id}`,
-                thumbnail_url: `https://img.youtube.com/vi/${lockup.content_id}/0.jpg`,
-                duration: -1,
-                seek: 0,
-                isYoutubeBased: true,
-              });
-            }
+    const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([^&#]+)/;
+    const match = songUrl.match(regex);
+    const id = match ? match[1] : null;
+
+    if (!id) {
+      return new Array<Song>();
+    }
+
+    console.log(id);
+
+    const video = await agent.getInfo(id);
+    const relatedVideos = video.watch_next_feed;
+
+    const suggestedSongs = new Array<Song>();
+
+    for (const video of relatedVideos) {
+      if (video.type === "LockupView") {
+        const lockup = video.as(YTNodes.LockupView);
+        if (lockup) {
+          if (lockup.content_id && lockup.content_id.length <= 11) {
+            suggestedSongs.push({
+              title: lockup.metadata.title.toString(),
+              url: `https://www.youtube.com/watch?v=${lockup.content_id}`,
+              thumbnail_url: `https://img.youtube.com/vi/${lockup.content_id}/0.jpg`,
+              duration: -1,
+              seek: 0,
+              isYoutubeBased: true,
+            });
           }
         }
       }
-
-      return suggestedSongs;
-    } else {
-      const suggestedSongs = new Array<Song>();
-
-      for (let index = 0; index < songInfo.related_videos.length; index++) {
-        const relatedSong = songInfo.related_videos[index];
-        suggestedSongs.push({
-          title: relatedSong.title,
-          url: `https://www.youtube.com/watch?v=${relatedSong.id}`,
-          thumbnail_url: relatedSong.thumbnails[0].url,
-          duration: Number(relatedSong.length_seconds),
-          seek: 0,
-          isYoutubeBased: true,
-        });
-      }
-
-      return suggestedSongs;
     }
+
+    return suggestedSongs;
   } catch (error) {
     console.log(error);
     return new Array<Song>();
