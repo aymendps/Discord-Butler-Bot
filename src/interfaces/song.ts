@@ -12,13 +12,17 @@ export interface Song {
 export class SongQueue {
   private queue: Song[];
   private current: Song;
+  private mostRecentSongsUrlsCache: string[];
+  private readonly MAX_RECENT_SONGS_CACHE_SIZE = 3;
   private isLooping: "None" | "One" | "All";
+  private autoPlay: boolean = false;
   public collector;
   public justSeeked: boolean = false;
   public justSkipped: boolean = false;
 
   public constructor() {
     this.queue = [];
+    this.mostRecentSongsUrlsCache = [];
     this.current = undefined;
     this.isLooping = "None";
   }
@@ -47,6 +51,36 @@ export class SongQueue {
     return this.queue;
   }
 
+  public isInMostRecentSongsCache(song: Song) {
+    if (!song) return false;
+    return this.mostRecentSongsUrlsCache.includes(song.url);
+  }
+
+  public isAutoPlayEnabled() {
+    return this.autoPlay;
+  }
+
+  public shouldAutoPlayNext() {
+    return this.autoPlay && this.queue.length <= 1;
+  }
+
+  public setAutoPlay(value: boolean) {
+    this.autoPlay = value;
+  }
+
+  public toggleAutoPlay() {
+    this.autoPlay = !this.autoPlay;
+    return this.autoPlay;
+  }
+
+  public isLoopingEnabled() {
+    return this.isLooping !== "None";
+  }
+
+  public setLoopingMode(mode: "None" | "One" | "All") {
+    this.isLooping = mode;
+  }
+
   public nextLoopingMode() {
     switch (this.isLooping) {
       case "None":
@@ -67,6 +101,10 @@ export class SongQueue {
 
   public push(song: Song) {
     this.queue.push(song);
+    const length = this.mostRecentSongsUrlsCache.unshift(song.url);
+    if (length > this.MAX_RECENT_SONGS_CACHE_SIZE) {
+      this.mostRecentSongsUrlsCache.pop();
+    }
   }
 
   public pop() {

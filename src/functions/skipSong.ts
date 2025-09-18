@@ -37,7 +37,7 @@ export const executeSkipSong = async (
       return;
     }
 
-    if (songQueue.isEmpty()) {
+    if (songQueue.isEmpty() && !songQueue.isLoopingEnabled) {
       executeStopSong(
         client,
         member,

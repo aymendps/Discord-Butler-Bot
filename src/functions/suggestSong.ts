@@ -49,9 +49,8 @@ export const suggestSong = async (
       return new Array<Song>();
     }
 
-    console.log(id);
-
     const video = await agent.getInfo(id);
+
     const relatedVideos = video.watch_next_feed;
 
     const suggestedSongs = new Array<Song>();

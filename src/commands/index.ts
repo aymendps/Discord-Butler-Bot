@@ -29,6 +29,7 @@ import { PlayPlaylistCommand } from "./playPlaylist";
 import { PlaySongFromFileCommand } from "./playSongFromFile";
 import { AIChatJoinConversationCommand } from "./AIChatJoinConversation";
 import { AIChatLeaveConversationCommand } from "./AIChatLeaveConversation";
+import { AutoPlayNextSongCommand } from "./autoPlayNextSong";
 
 export const sendInteractionReply = async (
   interaction: ChatInputCommandInteraction,
@@ -67,4 +68,5 @@ export const Commands: Command[] = [
   findActiveLolMatchCommand,
   AIChatJoinConversationCommand,
   AIChatLeaveConversationCommand,
+  AutoPlayNextSongCommand,
 ];

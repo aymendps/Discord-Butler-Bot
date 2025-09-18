@@ -265,7 +265,8 @@ export const executeAddSong = async (
   urlArgs: string,
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction,
-  useThisRawSongInstead: Song = null
+  useThisRawSongInstead: Song = null,
+  wasAutoPlayed: boolean = false
 ) => {
   if (!urlArgs && !useThisRawSongInstead) {
     sendReplyFunction({
@@ -290,7 +291,11 @@ export const executeAddSong = async (
     sendReplyFunction({
       embeds: [
         new EmbedBuilder()
-          .setTitle(song.title.substring(0, 254))
+          .setTitle(
+            wasAutoPlayed
+              ? "[Auto Played By Butler Bot] " + song.title.substring(0, 226)
+              : song.title.substring(0, 254)
+          )
           .setURL(song.url)
           .setDescription(
             "Added " + song.title + " to the queue: #" + songQueue.length()

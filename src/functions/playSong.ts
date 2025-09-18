@@ -22,11 +22,11 @@ import { executeAddSpecificToFavorites } from "./addToFavorites";
 import { executeSeekSongTimeSecondsRaw } from "./seekSongTime";
 import { PassThrough } from "stream";
 import * as ffmpeg from "fluent-ffmpeg";
-import * as ytdl from "@distube/ytdl-core";
-import { ytdlAgent } from "../main";
-import { Payload, youtubeDl } from "youtube-dl-exec";
+import { youtubeDl } from "youtube-dl-exec";
 import { SubprocessPromise } from "tinyspawn";
 import { exec } from "child_process";
+import { suggestSong } from "./suggestSong";
+import { addSongIfShouldAutoPlayNext } from "./autoPlayNextSong";
 
 let currentStreamProcess: SubprocessPromise = null;
 
@@ -47,6 +47,7 @@ export const playSong = async (
   audioPlayer: AudioPlayer,
   songQueue: SongQueue,
   currentSong: Song,
+  sendReplyFunction: sendReplyFunction,
   successReply: (song: Song, remaining: number) => void,
   errorReply: () => void,
   finishReply: () => void,
@@ -70,6 +71,7 @@ export const playSong = async (
           audioPlayer,
           songQueue,
           songQueue.pop(),
+          sendReplyFunction,
           successReply,
           errorReply,
           finishReply,
@@ -92,6 +94,7 @@ export const playSong = async (
           audioPlayer,
           songQueue,
           currentSong,
+          sendReplyFunction,
           successReply,
           errorReply,
           finishReply,
@@ -222,6 +225,8 @@ export const playSong = async (
     audioPlayer.play(audioResource);
 
     if (allowReply) successReply(currentSong, songQueue.length());
+
+    addSongIfShouldAutoPlayNext(currentSong, songQueue, sendReplyFunction);
   } catch (error) {
     if (error.message) {
       if (error.message.includes("Sign in to confirm your age")) {
@@ -231,6 +236,7 @@ export const playSong = async (
           audioPlayer,
           songQueue,
           songQueue.pop(),
+          sendReplyFunction,
           successReply,
           errorReply,
           finishReply,
@@ -244,6 +250,7 @@ export const playSong = async (
         audioPlayer,
         songQueue,
         currentSong,
+        sendReplyFunction,
         successReply,
         errorReply,
         finishReply,
@@ -337,6 +344,7 @@ export const executePlaySong = async (
         audioPlayer,
         songQueue,
         songQueue.pop(),
+        sendReplyFunction,
         async (song, remaining) => {
           const response = await sendReplyFunction({
             embeds: [

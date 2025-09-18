@@ -37,6 +37,7 @@ import { executePlaySongFromFile } from "../functions/playSongFromFile";
 import { AIChatManager } from "../AI/AIChatManager";
 import { executeAIChatJoinConversation } from "../AI/AIChatJoinConversation";
 import { executeAIChatLeaveConversation } from "../AI/AIChatLeaveConversation";
+import { executeAutoPlayNextSong } from "../functions/autoPlayNextSong";
 
 const handleMemes = (message: Message, sendReply: Function) => {
   if (
@@ -194,6 +195,8 @@ export default (
         AIChatManagerInstance,
         sendReply
       );
+    } else if (message.content.startsWith(PREFIX + "autoplay")) {
+      executeAutoPlayNextSong(message.member, songQueue, sendReply);
     } else if (message.content.startsWith(PREFIX + "play-faves")) {
       const args = message.content.substring(11).trim().split(/\s+/);
       const memberTag = args.filter((a) => a.startsWith("<@"))[0];

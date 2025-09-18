@@ -39,6 +39,32 @@ export const executeStopSong = async (
       ],
     });
 
+    if (songQueue.isLoopingEnabled()) {
+      songQueue.setLoopingMode("None");
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setDescription(
+              "Looping was turned off since the music was stopped!"
+            )
+            .setColor("DarkGold"),
+        ],
+      });
+    }
+
+    if (songQueue.isAutoPlayEnabled()) {
+      songQueue.setAutoPlay(false);
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setDescription(
+              "AutoPlay was turned off since the music was stopped!"
+            )
+            .setColor("DarkGold"),
+        ],
+      });
+    }
+
     songQueue.reset();
     skipSong(audioPlayer, songQueue);
   } catch (error) {
