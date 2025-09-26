@@ -1,5 +1,5 @@
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
-import { Song, SongQueue } from "../interfaces/song";
+import { Song, SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
 import { EmbedBuilder, GuildMember } from "discord.js";
 import { suggestSong } from "./suggestSong";
 import { executeAddSong } from "./addSong";
@@ -11,7 +11,16 @@ export const addSongIfShouldAutoPlayNext = async (
   sendReplyFunction: sendReplyFunction
 ) => {
   if (songQueue.shouldAutoPlayNext()) {
-    const suggestedSongs = await suggestSong(currentSong.url, songQueue);
+    const source: SongQueueAutoPlaySource =
+      songQueue.getAutoPlayMode() === "Youtube Music"
+        ? "Youtube Music"
+        : "Youtube Normal";
+
+    const suggestedSongs = await suggestSong(
+      source === "Youtube Music" ? currentSong.title : currentSong.url,
+      source,
+      songQueue
+    );
 
     let lastResortSong: Song = null;
 
@@ -47,30 +56,45 @@ export const executeAutoPlayNextSong = async (
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction
 ) => {
-  const enabled = songQueue.toggleAutoPlay();
+  const enabled = songQueue.nextAutoPlayMode();
 
-  if (enabled) {
-    await sendReplyFunction({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("Autoplay Mode Enabled")
-          .setDescription(
-            "Butler Bot will now automatically find and play the next song when the queue is almost empty."
-          )
-          .setColor("DarkBlue"),
-      ],
-    });
-  } else {
-    await sendReplyFunction({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("Autoplay Mode Disabled")
-          .setDescription(
-            "Butler Bot will no longer automatically find and play the next song."
-          )
-          .setColor("DarkBlue"),
-      ],
-    });
+  switch (enabled) {
+    case "None":
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Autoplay Mode Disabled")
+            .setDescription(
+              "Butler Bot will no longer automatically add songs to the queue when it's almost empty."
+            )
+            .setColor("DarkBlue"),
+        ],
+      });
+      break;
+    case "Youtube Music":
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Autoplay Mode Enabled | Youtube Music")
+            .setDescription(
+              "Butler Bot will now automatically find and play the next song when the queue is almost empty."
+            )
+            .setColor("DarkBlue"),
+        ],
+      });
+      break;
+    case "Youtube Normal":
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Autoplay Mode Enabled | Youtube Normal")
+            .setDescription(
+              "Butler Bot will now automatically find and play the next song when the queue is almost empty."
+            )
+            .setColor("DarkBlue"),
+        ],
+      });
+      break;
   }
 
   if (songQueue.isEmpty() && songQueue.getCurrent()) {

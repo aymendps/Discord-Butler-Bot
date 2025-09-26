@@ -9,13 +9,17 @@ export interface Song {
   isLive?: boolean;
 }
 
+export type SongQueueLoopingMode = "None" | "One" | "All";
+export type SongQueueAutoPlaySource = "Youtube Music" | "Youtube Normal";
+export type SongQueueAutoPlayMode = "None" | SongQueueAutoPlaySource;
+
 export class SongQueue {
   private queue: Song[];
   private current: Song;
   private mostRecentSongsUrlsCache: string[];
-  private readonly MAX_RECENT_SONGS_CACHE_SIZE = 3;
-  private isLooping: "None" | "One" | "All";
-  private autoPlay: boolean = false;
+  private readonly MAX_RECENT_SONGS_CACHE_SIZE = 5;
+  private isLooping: SongQueueLoopingMode;
+  private autoPlay: SongQueueAutoPlayMode;
   public collector;
   public justSeeked: boolean = false;
   public justSkipped: boolean = false;
@@ -25,6 +29,7 @@ export class SongQueue {
     this.mostRecentSongsUrlsCache = [];
     this.current = undefined;
     this.isLooping = "None";
+    this.autoPlay = "None";
   }
 
   public getCurrent() {
@@ -57,19 +62,33 @@ export class SongQueue {
   }
 
   public isAutoPlayEnabled() {
+    return this.autoPlay !== "None";
+  }
+
+  public getAutoPlayMode() {
     return this.autoPlay;
   }
 
   public shouldAutoPlayNext() {
-    return this.autoPlay && this.queue.length <= 1;
+    return this.isAutoPlayEnabled() && this.queue.length <= 1;
   }
 
-  public setAutoPlay(value: boolean) {
+  public setAutoPlay(value: SongQueueAutoPlayMode) {
     this.autoPlay = value;
   }
 
-  public toggleAutoPlay() {
-    this.autoPlay = !this.autoPlay;
+  public nextAutoPlayMode() {
+    switch (this.autoPlay) {
+      case "None":
+        this.autoPlay = "Youtube Music";
+        break;
+      case "Youtube Music":
+        this.autoPlay = "Youtube Normal";
+        break;
+      case "Youtube Normal":
+        this.autoPlay = "None";
+        break;
+    }
     return this.autoPlay;
   }
 
@@ -77,7 +96,11 @@ export class SongQueue {
     return this.isLooping !== "None";
   }
 
-  public setLoopingMode(mode: "None" | "One" | "All") {
+  public getLoopingMode() {
+    return this.isLooping;
+  }
+
+  public setLoopingMode(mode: SongQueueLoopingMode) {
     this.isLooping = mode;
   }
 

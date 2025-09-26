@@ -1,6 +1,6 @@
 import { ButtonStyle, EmbedBuilder } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
-import { Song, SongQueue } from "../interfaces/song";
+import { Song, SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
 import play from "play-dl";
 import {
   ActionRowBuilder,
@@ -9,12 +9,127 @@ import {
 } from "@discordjs/builders";
 import * as ytdl from "@distube/ytdl-core";
 import { getInnertubeAgent, ytdlAgent } from "../main";
-import { YTNodes } from "youtubei.js";
+import { Innertube, YTNodes } from "youtubei.js";
 
 const SUGGEST_MAX_SONGS = 10;
 
+const getSuggestedSongsUsingSource = async (
+  agent: Innertube,
+  source: SongQueueAutoPlaySource,
+  searchQuery: string
+): Promise<Song[]> => {
+  let suggestedSongs = new Array<Song>();
+
+  if (source !== "Youtube Music" && source !== "Youtube Normal") {
+    source = "Youtube Normal";
+  }
+
+  switch (source) {
+    case "Youtube Music":
+      {
+        let songTitle: string;
+
+        if (
+          searchQuery.startsWith("https") &&
+          play.yt_validate(searchQuery) === "video"
+        ) {
+          const songInfo = await play.search(searchQuery, { limit: 1 });
+          songTitle = songInfo[0].title;
+        } else {
+          songTitle = searchQuery;
+        }
+
+        const musicSearch = await agent.music.search(songTitle, {
+          type: "song",
+        });
+
+        const song = musicSearch.songs.contents[0].id;
+
+        const video = await agent.music.getRelated(song);
+
+        const relatedVideos = video
+          .as(YTNodes.SectionList)
+          .contents[0].as(YTNodes.MusicCarouselShelf)
+          .contents.map((item) => {
+            return {
+              id: item.key("id").string(),
+              title: item.key("title").string(),
+            };
+          });
+
+        suggestedSongs = new Array<Song>();
+
+        for (const video of relatedVideos) {
+          if (video.id && video.title) {
+            suggestedSongs.push({
+              title: video.title,
+              url: `https://www.youtube.com/watch?v=${video.id}`,
+              thumbnail_url: `https://img.youtube.com/vi/${video.id}/0.jpg`,
+              duration: -1,
+              seek: 0,
+              isYoutubeBased: true,
+            });
+          }
+        }
+      }
+      break;
+    case "Youtube Normal":
+      {
+        let songUrl: string;
+
+        if (
+          !(
+            searchQuery.startsWith("https") &&
+            play.yt_validate(searchQuery) === "video"
+          )
+        ) {
+          const songInfo = await play.search(searchQuery, { limit: 1 });
+          songUrl = songInfo[0].url;
+        } else {
+          songUrl = searchQuery;
+        }
+
+        const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([^&#]+)/;
+        const match = songUrl.match(regex);
+        const id = match ? match[1] : null;
+
+        if (!id) {
+          return new Array<Song>();
+        }
+
+        const video = await agent.getInfo(id);
+
+        const relatedVideos = video.watch_next_feed;
+
+        suggestedSongs = new Array<Song>();
+
+        for (const video of relatedVideos) {
+          if (video.type === "LockupView") {
+            const lockup = video.as(YTNodes.LockupView);
+            if (lockup) {
+              if (lockup.content_id && lockup.content_id.length <= 11) {
+                suggestedSongs.push({
+                  title: lockup.metadata.title.toString(),
+                  url: `https://www.youtube.com/watch?v=${lockup.content_id}`,
+                  thumbnail_url: `https://img.youtube.com/vi/${lockup.content_id}/0.jpg`,
+                  duration: -1,
+                  seek: 0,
+                  isYoutubeBased: true,
+                });
+              }
+            }
+          }
+        }
+      }
+      break;
+  }
+
+  return suggestedSongs;
+};
+
 export const suggestSong = async (
   nameArg: string,
+  source: SongQueueAutoPlaySource,
   songQueue: SongQueue
 ): Promise<Song[]> => {
   try {
@@ -32,46 +147,11 @@ export const suggestSong = async (
       searchQuery = nameArg;
     }
 
-    let songUrl: string;
-
-    if (play.yt_validate(searchQuery) !== "video") {
-      const songInfo = await play.search(searchQuery, { limit: 1 });
-      songUrl = songInfo[0].url;
-    } else {
-      songUrl = searchQuery;
-    }
-
-    const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([^&#]+)/;
-    const match = songUrl.match(regex);
-    const id = match ? match[1] : null;
-
-    if (!id) {
-      return new Array<Song>();
-    }
-
-    const video = await agent.getInfo(id);
-
-    const relatedVideos = video.watch_next_feed;
-
-    const suggestedSongs = new Array<Song>();
-
-    for (const video of relatedVideos) {
-      if (video.type === "LockupView") {
-        const lockup = video.as(YTNodes.LockupView);
-        if (lockup) {
-          if (lockup.content_id && lockup.content_id.length <= 11) {
-            suggestedSongs.push({
-              title: lockup.metadata.title.toString(),
-              url: `https://www.youtube.com/watch?v=${lockup.content_id}`,
-              thumbnail_url: `https://img.youtube.com/vi/${lockup.content_id}/0.jpg`,
-              duration: -1,
-              seek: 0,
-              isYoutubeBased: true,
-            });
-          }
-        }
-      }
-    }
+    const suggestedSongs = await getSuggestedSongsUsingSource(
+      agent,
+      source,
+      searchQuery
+    );
 
     return suggestedSongs;
   } catch (error) {
@@ -82,11 +162,12 @@ export const suggestSong = async (
 
 export const executeSuggestSong = async (
   nameArg: string,
+  source: SongQueueAutoPlaySource,
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction
 ) => {
   try {
-    let suggestedSongs = await suggestSong(nameArg, songQueue);
+    let suggestedSongs = await suggestSong(nameArg, source, songQueue);
     if (suggestedSongs.length === 0) {
       sendReplyFunction({
         embeds: [

@@ -17,7 +17,7 @@ import { executePlaySong } from "../functions/playSong";
 import { executeSkipSong } from "../functions/skipSong";
 import { executeStopSong } from "../functions/stopSong";
 import { executeRemoveSong } from "../functions/removeSong";
-import { SongQueue } from "../interfaces/song";
+import { SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
 import { executeSeekSongTime } from "../functions/seekSongTime";
 import { executeAddToFavorites } from "../functions/addToFavorites";
 import { executeViewFavorites } from "../functions/viewFavorites";
@@ -269,7 +269,17 @@ export default (
     } else if (message.content.startsWith(PREFIX + "suggest")) {
       sendReply({ content: "Thinking..." });
       const args = message.content.substring(8).trim();
-      executeSuggestSong(args, songQueue, sendReply);
+      var [name, source] = args.split("source=");
+      if (source) {
+        source = source.trim().toLowerCase();
+        source = source.includes("music") ? "Youtube Music" : "Youtube Normal";
+      }
+      executeSuggestSong(
+        name?.trim(),
+        source as SongQueueAutoPlaySource,
+        songQueue,
+        sendReply
+      );
     } else if (message.content.startsWith(PREFIX + "skip")) {
       executeSkipSong(
         client,

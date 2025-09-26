@@ -293,7 +293,10 @@ export const executeAddSong = async (
         new EmbedBuilder()
           .setTitle(
             wasAutoPlayed
-              ? "[Auto Played By Butler Bot] " + song.title.substring(0, 226)
+              ? `[Auto-Played | ${songQueue.getAutoPlayMode()}] ${song.title.substring(
+                  0,
+                  220
+                )}`
               : song.title.substring(0, 254)
           )
           .setURL(song.url)

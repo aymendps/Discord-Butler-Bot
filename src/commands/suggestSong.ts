@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { sendInteractionReply } from ".";
 import { Command } from "../interfaces/command";
-import { SongQueue } from "../interfaces/song";
+import { SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
 import { executeSuggestSong } from "../functions/suggestSong";
 
 export const SuggestSongCommand: Command = {
@@ -20,6 +20,16 @@ export const SuggestSongCommand: Command = {
       type: ApplicationCommandOptionType.String,
       required: false,
     },
+    {
+      name: "source",
+      description: "The source to use for suggesting songs",
+      type: ApplicationCommandOptionType.String,
+      required: false,
+      choices: [
+        { name: "Youtube Music", value: "Youtube Music" },
+        { name: "Youtube Normal", value: "Youtube Normal" },
+      ],
+    },
   ],
   run: async (
     client: Client,
@@ -28,6 +38,8 @@ export const SuggestSongCommand: Command = {
   ) => {
     executeSuggestSong(
       interaction.options.get("name", false)?.value as string,
+      interaction.options.get("source", false)
+        ?.value as SongQueueAutoPlaySource,
       songQueue,
       async (options: InteractionReplyOptions) => {
         return await sendInteractionReply(interaction, options);
