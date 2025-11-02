@@ -118,11 +118,12 @@ export const executeSeekSongTime = async (
     killCurrentStreamProcessPrematurely();
 
     const stream = youtubeDl.exec(current.url, {
-      format: "bestaudio",
+      format: "bestaudio/best",
       output: "-", // Send output to stdout
       userAgent: "googlebot",
       addHeader: ["referer:youtube.com"],
-      exec: "--cookies-from-browser chrome", // Automatically get cookies
+      // @ts-ignore
+      // extractorArgs: "youtube:player-client=default,-tv_simply",
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
@@ -251,11 +252,12 @@ export const executeSeekSongTimeSecondsRaw = async (
     killCurrentStreamProcessPrematurely();
 
     const stream = youtubeDl.exec(current.url, {
-      format: "bestaudio",
+      format: "bestaudio/best",
       output: "-", // Send output to stdout
       userAgent: "googlebot",
       addHeader: ["referer:youtube.com"],
-      exec: "--cookies-from-browser chrome", // Automatically get cookies
+      // @ts-ignore
+      // extractorArgs: "youtube:player-client=default,-tv_simply",
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,

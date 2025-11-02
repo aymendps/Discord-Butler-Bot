@@ -152,16 +152,20 @@ export const playSong = async (
 
       const stream = currentSong.isYoutubeBased
         ? youtubeDl.exec(currentSong.url, {
-            format: "bestaudio",
+            format: "bestaudio/best",
             output: "-", // Send output to stdout
             userAgent: "googlebot",
             addHeader: ["referer:youtube.com"],
-            exec: "--cookies-from-browser chrome", // Automatically get cookies
+            // @ts-ignore
+            // extractorArgs: "youtube:player-client=default,-tv_simply",
             noCheckCertificates: true,
             noWarnings: true,
             preferFreeFormats: true,
           })
-        : youtubeDl.exec(currentSong.url, { format: "bestaudio", output: "-" });
+        : youtubeDl.exec(currentSong.url, {
+            format: "bestaudio/best",
+            output: "-",
+          });
 
       stream.catch((err) => {
         if (songQueue.justSeeked || songQueue.justSkipped) {

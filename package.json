@@ -16,8 +16,8 @@
     "he": "^1.2.0",
     "play-dl": "github:aymendps/play-dl",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^3.0.19",
-    "youtubei.js": "^15.0.1"
+    "youtube-dl-exec": "^3.0.25",
+    "youtubei.js": "^15.1.1"
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.21",
