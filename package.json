@@ -16,7 +16,7 @@
     "he": "^1.2.0",
     "play-dl": "github:aymendps/play-dl",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^3.0.25",
+    "youtube-dl-exec": "^3.0.27",
     "youtubei.js": "^15.1.1"
   },
   "devDependencies": {

@@ -53,7 +53,7 @@ export const executeStopSong = async (
     }
 
     if (songQueue.isAutoPlayEnabled()) {
-      songQueue.setAutoPlay("None");
+      songQueue.setAutoPlayMode("None");
       await sendReplyFunction({
         embeds: [
           new EmbedBuilder()

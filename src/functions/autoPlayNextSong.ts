@@ -1,5 +1,10 @@
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
-import { Song, SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
+import {
+  Song,
+  SongQueue,
+  SongQueueAutoPlayMode,
+  SongQueueAutoPlaySource,
+} from "../interfaces/song";
 import { EmbedBuilder, GuildMember } from "discord.js";
 import { suggestSong } from "./suggestSong";
 import { executeAddSong } from "./addSong";
@@ -29,6 +34,7 @@ export const addSongIfShouldAutoPlayNext = async (
       if (
         song.title.toLowerCase().includes("extended") ||
         song.title.toLowerCase().includes("live") ||
+        song.title.toLowerCase().includes("playlist") ||
         Number(song.duration) >= 5400
       ) {
         if (!lastResortSong) lastResortSong = song;
@@ -53,10 +59,18 @@ export const addSongIfShouldAutoPlayNext = async (
 
 export const executeAutoPlayNextSong = async (
   member: GuildMember,
+  source: SongQueueAutoPlayMode,
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction
 ) => {
-  const enabled = songQueue.nextAutoPlayMode();
+  let enabled: SongQueueAutoPlayMode;
+
+  if (source) {
+    songQueue.setAutoPlayMode(source);
+    enabled = source;
+  } else {
+    enabled = songQueue.nextAutoPlayMode();
+  }
 
   switch (enabled) {
     case "None":
@@ -97,7 +111,7 @@ export const executeAutoPlayNextSong = async (
       break;
   }
 
-  if (songQueue.isEmpty() && songQueue.getCurrent()) {
+  if (songQueue.getCurrent() && songQueue.shouldAutoPlayNext()) {
     const voiceChannel = member.voice.channel;
     if (!voiceChannel) return;
 

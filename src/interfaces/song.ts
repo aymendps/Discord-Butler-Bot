@@ -73,7 +73,7 @@ export class SongQueue {
     return this.isAutoPlayEnabled() && this.queue.length <= 1;
   }
 
-  public setAutoPlay(value: SongQueueAutoPlayMode) {
+  public setAutoPlayMode(value: SongQueueAutoPlayMode) {
     this.autoPlay = value;
   }
 

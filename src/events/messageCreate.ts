@@ -17,7 +17,11 @@ import { executePlaySong } from "../functions/playSong";
 import { executeSkipSong } from "../functions/skipSong";
 import { executeStopSong } from "../functions/stopSong";
 import { executeRemoveSong } from "../functions/removeSong";
-import { SongQueue, SongQueueAutoPlaySource } from "../interfaces/song";
+import {
+  SongQueue,
+  SongQueueAutoPlayMode,
+  SongQueueAutoPlaySource,
+} from "../interfaces/song";
 import { executeSeekSongTime } from "../functions/seekSongTime";
 import { executeAddToFavorites } from "../functions/addToFavorites";
 import { executeViewFavorites } from "../functions/viewFavorites";
@@ -83,8 +87,6 @@ const handleAIChatMessage = async (
   message: Message,
   sendReply: (options: MessageCreateOptions) => Promise<Message<true>>
 ): Promise<boolean> => {
-  if (message.content.startsWith(PREFIX)) return false;
-
   if (
     REQUIRED_BOT_AI_CHANNEL_ID === message.channel.id &&
     !message.author.bot
@@ -196,7 +198,22 @@ export default (
         sendReply
       );
     } else if (message.content.startsWith(PREFIX + "autoplay")) {
-      executeAutoPlayNextSong(message.member, songQueue, sendReply);
+      const args = message.content.substring(9).trim();
+      var [name, source] = args.split("source=");
+      if (source) {
+        source = source.trim().toLowerCase();
+        source = source.includes("music")
+          ? "Youtube Music"
+          : source.includes("normal")
+          ? "Youtube Normal"
+          : "None";
+      }
+      executeAutoPlayNextSong(
+        message.member,
+        source as SongQueueAutoPlayMode,
+        songQueue,
+        sendReply
+      );
     } else if (message.content.startsWith(PREFIX + "play-faves")) {
       const args = message.content.substring(11).trim().split(/\s+/);
       const memberTag = args.filter((a) => a.startsWith("<@"))[0];
