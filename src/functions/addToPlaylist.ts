@@ -6,7 +6,8 @@ import play from "play-dl";
 import { EmbedBuilder } from "discord.js";
 import { sanitizePlaylistID } from "./utils";
 import * as ytdl from "@distube/ytdl-core";
-import { ytdlAgent } from "../main";
+import { getInnertubeAgent, ytdlAgent } from "../main";
+import { YTNodes } from "youtubei.js";
 
 const addToPlaylist = async (playlistID: string, song: Song) => {
   try {
@@ -214,15 +215,21 @@ export const executeAddToPlaylist = async (
           ],
         });
       } else {
-        const results = await play.search(songID, { limit: 1 });
-        toAdd = {
-          title: results[0].title,
-          url: results[0].url,
-          thumbnail_url: results[0].thumbnails[0].url,
-          duration: results[0].durationInSec,
+        const ytAgent = await getInnertubeAgent();
+        const search = await ytAgent.search(songID, { type: "video" });
+        const songInfo = search.results
+          .filter((r) => r.is(YTNodes.Video))[0]
+          .as(YTNodes.Video);
+
+        const toAdd: Song = {
+          title: songInfo.title.toString(),
+          url: `https://www.youtube.com/watch?v=${songInfo.video_id}`,
+          thumbnail_url: songInfo.thumbnails[0].url,
+          duration: songInfo.duration.seconds,
           seek: 0,
           isYoutubeBased: true,
         };
+
         await addToPlaylist(playlistID, toAdd);
         sendReplyFunction({
           embeds: [

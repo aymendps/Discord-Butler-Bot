@@ -3,7 +3,8 @@ import { Song, SongQueue } from "../interfaces/song";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack } from "play-dl";
 import * as ytdl from "@distube/ytdl-core";
-import { ytdlAgent } from "../main";
+import { getInnertubeAgent, ytdlAgent } from "../main";
+import { YTNodes } from "youtubei.js";
 
 const checkForTimeStamp = (url: string, songDuration: number) => {
   const index = url.indexOf("t=");
@@ -138,12 +139,17 @@ export const addSong = async (
           songQueue.push(song);
           return song;
         } catch (error) {
-          const songInfo = await play.search(url, { limit: 1 });
+          const ytAgent = await getInnertubeAgent();
+          const search = await ytAgent.search(url, { type: "video" });
+          const songInfo = search.results
+            .filter((r) => r.is(YTNodes.Video))[0]
+            .as(YTNodes.Video);
+
           const song: Song = {
-            title: songInfo[0].title,
-            url: songInfo[0].url,
-            thumbnail_url: songInfo[0].thumbnails[0].url,
-            duration: songInfo[0].durationInSec,
+            title: songInfo.title.toString(),
+            url: `https://www.youtube.com/watch?v=${songInfo.video_id}`,
+            thumbnail_url: songInfo.thumbnails[0].url,
+            duration: songInfo.duration.seconds,
             seek: 0,
             isYoutubeBased: true,
           };
@@ -238,12 +244,17 @@ export const addSong = async (
           };
         }
       } else {
-        const songInfo = await play.search(url, { limit: 1 });
+        const ytAgent = await getInnertubeAgent();
+        const search = await ytAgent.search(url, { type: "video" });
+        const songInfo = search.results
+          .filter((r) => r.is(YTNodes.Video))[0]
+          .as(YTNodes.Video);
+
         const song: Song = {
-          title: songInfo[0].title,
-          url: songInfo[0].url,
-          thumbnail_url: songInfo[0].thumbnails[0].url,
-          duration: songInfo[0].durationInSec,
+          title: songInfo.title.toString(),
+          url: `https://www.youtube.com/watch?v=${songInfo.video_id}`,
+          thumbnail_url: songInfo.thumbnails[0].url,
+          duration: songInfo.duration.seconds,
           seek: 0,
           isYoutubeBased: true,
         };

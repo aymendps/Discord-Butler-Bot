@@ -33,8 +33,11 @@ const getSuggestedSongsUsingSource = async (
           searchQuery.startsWith("https") &&
           play.yt_validate(searchQuery) === "video"
         ) {
-          const songInfo = await play.search(searchQuery, { limit: 1 });
-          songTitle = songInfo[0].title;
+          const search = await agent.search(searchQuery, { type: "video" });
+          const songInfo = search.results
+            .filter((r) => r.is(YTNodes.Video))[0]
+            .as(YTNodes.Video);
+          songTitle = songInfo.title.toString();
         } else {
           songTitle = searchQuery;
         }
@@ -83,8 +86,11 @@ const getSuggestedSongsUsingSource = async (
             play.yt_validate(searchQuery) === "video"
           )
         ) {
-          const songInfo = await play.search(searchQuery, { limit: 1 });
-          songUrl = songInfo[0].url;
+          const search = await agent.search(searchQuery, { type: "video" });
+          const songInfo = search.results
+            .filter((r) => r.is(YTNodes.Video))[0]
+            .as(YTNodes.Video);
+          songUrl = `https://www.youtube.com/watch?v=${songInfo.video_id}`;
         } else {
           songUrl = searchQuery;
         }

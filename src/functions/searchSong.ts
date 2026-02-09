@@ -8,32 +8,41 @@ import {
   EmbedBuilder,
   MessageActionRowComponentBuilder,
 } from "discord.js";
+import { getInnertubeAgent } from "../main";
+import { YTNodes } from "youtubei.js";
 
 export const SEARCH_DEFAULT_NUMBER_OF_RESULTS = 5;
+export const SEARCH_MAX_NUMBER_OF_RESULTS = 10;
 
 const searchSong = async (
   name: string,
   numberOfResults: number
 ): Promise<Song[]> => {
   try {
-    const searchResults = await play.search(name, {
-      limit: numberOfResults
-        ? numberOfResults
-        : SEARCH_DEFAULT_NUMBER_OF_RESULTS,
-    });
+    const ytAgent = await getInnertubeAgent();
+    const search = await ytAgent.search(name, { type: "video" });
+    const searchResults = search.results
+      .filter((result) => result.is(YTNodes.Video))
+      .slice(
+        0,
+        numberOfResults
+          ? Math.min(Math.max(numberOfResults, 1), SEARCH_MAX_NUMBER_OF_RESULTS)
+          : SEARCH_DEFAULT_NUMBER_OF_RESULTS
+      )
+      .map((result) => result.as(YTNodes.Video));
 
     if (searchResults) {
       const songs: Song[] = searchResults.map((song) => {
         return {
-          title: song.title,
-          url: song.url,
+          title: song.title.toString(),
+          url: `https://www.youtube.com/watch?v=${song.video_id}`,
           thumbnail_url: song.thumbnails[0].url,
-          duration: song.durationInSec,
+          duration: song.duration.seconds,
           seek: 0,
           isYoutubeBased: true,
         };
       });
-
+      console.log(songs.length);
       return songs;
     }
 

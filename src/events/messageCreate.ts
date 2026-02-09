@@ -29,6 +29,7 @@ import { executePlayFavorites } from "../functions/playFavorites";
 import {
   executeSearchSong,
   SEARCH_DEFAULT_NUMBER_OF_RESULTS,
+  SEARCH_MAX_NUMBER_OF_RESULTS,
 } from "../functions/searchSong";
 import { executeSuggestSong } from "../functions/suggestSong";
 import { executeViewQueue } from "../functions/viewQueue";
@@ -279,8 +280,10 @@ export default (
       if (isNaN(boundedMax)) {
         boundedMax = SEARCH_DEFAULT_NUMBER_OF_RESULTS;
       } else {
-        boundedMax = boundedMax > 10 ? 10 : boundedMax;
-        boundedMax = boundedMax < 1 ? 1 : boundedMax;
+        boundedMax = Math.min(
+          Math.max(boundedMax, 1),
+          SEARCH_MAX_NUMBER_OF_RESULTS
+        );
       }
       executeSearchSong(name, boundedMax, songQueue, sendReply);
     } else if (message.content.startsWith(PREFIX + "suggest")) {
