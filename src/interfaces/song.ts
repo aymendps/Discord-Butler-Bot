@@ -70,7 +70,7 @@ export class SongQueue {
   }
 
   public shouldAutoPlayNext() {
-    return this.isAutoPlayEnabled() && this.queue.length <= 1;
+    return this.isAutoPlayEnabled() && this.queue.length < 1;
   }
 
   public setAutoPlayMode(value: SongQueueAutoPlayMode) {
