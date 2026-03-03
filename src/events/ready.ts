@@ -2,7 +2,7 @@ import { Client } from "discord.js";
 import { Commands } from "../commands";
 
 export default (client: Client) => {
-  client.on("ready", async () => {
+  client.on("clientReady", async () => {
     if (!client.user || !client.application) {
       return;
     }
