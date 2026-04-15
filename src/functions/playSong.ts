@@ -21,7 +21,7 @@ import { executeSkipSong } from "./skipSong";
 import { executeAddSpecificToFavorites } from "./addToFavorites";
 import { executeSeekSongTimeSecondsRaw } from "./seekSongTime";
 import { PassThrough } from "stream";
-import * as ffmpeg from "fluent-ffmpeg";
+import ffmpeg from "fluent-ffmpeg";
 import { youtubeDl } from "youtube-dl-exec";
 import { SubprocessPromise } from "tinyspawn";
 import { exec } from "child_process";
@@ -245,7 +245,7 @@ export const playSong = async (
     if (allowReply) successReply(currentSong, songQueue.length());
 
     addSongIfShouldAutoPlayNext(currentSong, songQueue, sendReplyFunction);
-  } catch (error) {
+  } catch (error: any) {
     if (error.message) {
       if (error.message.includes("Sign in to confirm your age")) {
         await ageRestrictionReply(currentSong);
@@ -733,7 +733,7 @@ export const executePlaySong = async (
         },
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error.message?.includes("Seeking beyond limit")) {
       sendReplyFunction({
         embeds: [

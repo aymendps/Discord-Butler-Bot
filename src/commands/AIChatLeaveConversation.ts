@@ -20,14 +20,17 @@ export const AIChatLeaveConversationCommand: Command = {
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
     audioPlayer: AudioPlayer,
-    AIChatManagerInstance: AIChatManager
+    AIChatManagerInstance: AIChatManager,
   ) => {
     executeAIChatLeaveConversation(
       interaction.member as GuildMember,
       AIChatManagerInstance,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

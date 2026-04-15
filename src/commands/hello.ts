@@ -11,8 +11,11 @@ export const HelloCommand: Command = {
   name: "hello",
   description: "The first command ever made",
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    executeHello(client, async (options: InteractionReplyOptions) => {
-      return await sendInteractionReply(interaction, options);
+    executeHello(client, async (options) => {
+      return await sendInteractionReply(
+        interaction,
+        options as InteractionReplyOptions,
+      );
     });
   },
 };

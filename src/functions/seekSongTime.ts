@@ -4,7 +4,7 @@ import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import { Song, SongQueue } from "../interfaces/song";
 import play, { YouTubeStream } from "play-dl";
 import { PassThrough } from "stream";
-import * as ffmpeg from "fluent-ffmpeg";
+import ffmpeg from "fluent-ffmpeg";
 import * as ytdl from "@distube/ytdl-core";
 import { ytdlAgent } from "../main";
 import { youtubeDl } from "youtube-dl-exec";
@@ -164,7 +164,7 @@ export const executeSeekSongTime = async (
           .setColor("DarkGreen"),
       ],
     });
-  } catch (error) {
+  } catch (error: any) {
     if (error.message?.includes("Seeking beyond limit")) {
       sendReplyFunction({
         embeds: [
@@ -287,7 +287,7 @@ export const executeSeekSongTimeSecondsRaw = async (
     audioPlayer.play(audioResource);
 
     songQueue.collector.resetTimer();
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === "ERR_SSL_WRONG_VERSION_NUMBER") {
       console.log("Handling SSL Error");
       executeSeekSongTimeSecondsRaw(

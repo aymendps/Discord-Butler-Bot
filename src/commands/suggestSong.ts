@@ -34,16 +34,19 @@ export const SuggestSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeSuggestSong(
       interaction.options.get("name", false)?.value as string,
       interaction.options.get("source", false)
         ?.value as SongQueueAutoPlaySource,
       songQueue,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

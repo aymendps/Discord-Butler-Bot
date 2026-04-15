@@ -31,15 +31,18 @@ export const SearchSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeSearchSong(
       interaction.options.get("name", true).value as string,
       interaction.options.get("max", false)?.value as number,
       songQueue,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

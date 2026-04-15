@@ -14,10 +14,13 @@ export const RemoveQueueCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
-    executeRemoveQueue(songQueue, async (options: InteractionReplyOptions) => {
-      return await sendInteractionReply(interaction, options);
+    executeRemoveQueue(songQueue, async (options) => {
+      return await sendInteractionReply(
+        interaction,
+        options as InteractionReplyOptions,
+      );
     });
   },
 };

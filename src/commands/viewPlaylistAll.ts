@@ -11,8 +11,11 @@ export const ViewPlaylistAllCommand: Command = {
   name: "playlist-view-all",
   description: "View all created playlists",
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    executeViewPlaylistAll(async (options: InteractionReplyOptions) => {
-      return await sendInteractionReply(interaction, options);
+    executeViewPlaylistAll(async (options) => {
+      return await sendInteractionReply(
+        interaction,
+        options as InteractionReplyOptions,
+      );
     });
   },
 };

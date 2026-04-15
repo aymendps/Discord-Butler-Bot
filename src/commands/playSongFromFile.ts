@@ -26,7 +26,7 @@ export const PlaySongFromFileCommand: Command = {
     client: Client,
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
-    audioPlayer: AudioPlayer
+    audioPlayer: AudioPlayer,
   ) => {
     executePlaySongFromFile(
       client,
@@ -34,9 +34,12 @@ export const PlaySongFromFileCommand: Command = {
       interaction.options.get("file", true).attachment,
       songQueue,
       audioPlayer,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

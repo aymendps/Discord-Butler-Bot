@@ -7,16 +7,16 @@ import path = require("path");
 export const addToFavorites = async (
   client: Client,
   member: GuildMember,
-  song: Song
+  song: Song,
 ) => {
   try {
     const file = fs.readFileSync(
       path.join(__dirname, `../../.data/${member.user.username}.data`),
-      "utf-8"
+      "utf-8",
     );
     const faves: Song[] = JSON.parse(file);
     console.log(
-      `faves data was found for ${member.user.username}\nadding song to faves..`
+      `faves data was found for ${member.user.username}\nadding song to faves..`,
     );
     if (faves.find((s) => s.url === song.url)) {
       console.log("song is already in faves!");
@@ -25,21 +25,21 @@ export const addToFavorites = async (
       fs.writeFileSync(
         path.join(__dirname, `../../.data/${member.user.username}.data`),
         JSON.stringify(faves, null, 2),
-        "utf-8"
+        "utf-8",
       );
       console.log("song was added to faves successfully!");
     }
     return true;
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === "ENOENT") {
       console.log(
-        `faves data does not exist for ${member.user.username}\ncreating new data..`
+        `faves data does not exist for ${member.user.username}\ncreating new data..`,
       );
       const faves: Song[] = [song];
       fs.writeFileSync(
         path.join(__dirname, `../../.data/${member.user.username}.data`),
         JSON.stringify(faves, null, 2),
-        "utf-8"
+        "utf-8",
       );
       console.log("faves data was created successfully!");
       return true;
@@ -54,7 +54,7 @@ export const executeAddToFavorites = async (
   client: Client,
   member: GuildMember,
   songQueue: SongQueue,
-  sendReplyFunction: sendReplyFunction
+  sendReplyFunction: sendReplyFunction,
 ) => {
   try {
     const currentSong = songQueue.getCurrent();
@@ -68,7 +68,7 @@ export const executeAddToFavorites = async (
             new EmbedBuilder()
               .setTitle(`${currentSong.title} was added to your faves!`)
               .setDescription(
-                `Successfully added the song to ${member.nickname}'s faves! Use the command 'faves' to see more!`
+                `Successfully added the song to ${member.nickname}'s faves! Use the command 'faves' to see more!`,
               )
               .setThumbnail(currentSong.thumbnail_url)
               .setColor("DarkGreen"),
@@ -81,7 +81,7 @@ export const executeAddToFavorites = async (
           new EmbedBuilder()
             .setTitle("There is no song that's playing currently!")
             .setDescription(
-              "Play a song first, then use this command to add it to your faves!"
+              "Play a song first, then use this command to add it to your faves!",
             )
             .setColor("DarkGold"),
         ],
@@ -103,7 +103,7 @@ export const executeAddSpecificToFavorites = async (
   client: Client,
   member: GuildMember,
   song: Song,
-  sendReplyFunction: sendReplyFunction
+  sendReplyFunction: sendReplyFunction,
 ) => {
   try {
     const added = await addToFavorites(client, member, song);
@@ -115,7 +115,7 @@ export const executeAddSpecificToFavorites = async (
           new EmbedBuilder()
             .setTitle(`${song.title} was added to your faves!`)
             .setDescription(
-              `Successfully added the song to ${member.nickname}'s faves! Use the command 'faves' to see more!`
+              `Successfully added the song to ${member.nickname}'s faves! Use the command 'faves' to see more!`,
             )
             .setThumbnail(song.thumbnail_url)
             .setColor("DarkGreen"),

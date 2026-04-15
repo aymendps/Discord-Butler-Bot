@@ -26,16 +26,19 @@ export const SeekSongTimeCommand: Command = {
     client: Client,
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
-    audioPlayer: AudioPlayer
+    audioPlayer: AudioPlayer,
   ) => {
     executeSeekSongTime(
       interaction.member as GuildMember,
       interaction.options.get("timestamp")?.value?.toString()?.trim(),
       songQueue,
       audioPlayer,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

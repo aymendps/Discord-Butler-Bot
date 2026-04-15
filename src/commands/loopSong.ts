@@ -14,10 +14,13 @@ export const LoopSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
-    executeLoopSong(songQueue, async (options: InteractionReplyOptions) => {
-      return await sendInteractionReply(interaction, options);
+    executeLoopSong(songQueue, async (options) => {
+      return await sendInteractionReply(
+        interaction,
+        options as InteractionReplyOptions,
+      );
     });
   },
 };

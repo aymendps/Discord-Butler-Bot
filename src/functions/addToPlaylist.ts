@@ -14,11 +14,11 @@ const addToPlaylist = async (playlistID: string, song: Song) => {
     const cleanPlaylistID = sanitizePlaylistID(playlistID);
     const file = fs.readFileSync(
       path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
-      "utf-8"
+      "utf-8",
     );
     const playlist: Song[] = JSON.parse(file);
     console.log(
-      `playlist data was found for ${cleanPlaylistID}\nadding song to playlist..`
+      `playlist data was found for ${cleanPlaylistID}\nadding song to playlist..`,
     );
     if (playlist.find((s) => s.url === song.url)) {
       console.log("song is already in playlist!");
@@ -27,22 +27,22 @@ const addToPlaylist = async (playlistID: string, song: Song) => {
       fs.writeFileSync(
         path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
         JSON.stringify(playlist, null, 2),
-        "utf-8"
+        "utf-8",
       );
       console.log("song was added to playlist successfully!");
     }
     return true;
-  } catch (error) {
+  } catch (error: any) {
     const cleanPlaylistID = sanitizePlaylistID(playlistID);
     if (error.code === "ENOENT") {
       console.log(
-        `playlist data does not exist for ${cleanPlaylistID}\ncreating new data..`
+        `playlist data does not exist for ${cleanPlaylistID}\ncreating new data..`,
       );
       const playlist: Song[] = [song];
       fs.writeFileSync(
         path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
         JSON.stringify(playlist, null, 2),
-        "utf-8"
+        "utf-8",
       );
       console.log("playlist data was created successfully!");
       return true;
@@ -58,11 +58,11 @@ const addManyToPlaylist = async (playlistID: string, songs: Song[]) => {
     const cleanPlaylistID = sanitizePlaylistID(playlistID);
     const file = fs.readFileSync(
       path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
-      "utf-8"
+      "utf-8",
     );
     const playlist: Song[] = JSON.parse(file);
     console.log(
-      `playlist data was found for ${cleanPlaylistID}\nadding yt_playlist to playlist..`
+      `playlist data was found for ${cleanPlaylistID}\nadding yt_playlist to playlist..`,
     );
 
     const existingSongs = new Map<string, boolean>();
@@ -78,20 +78,20 @@ const addManyToPlaylist = async (playlistID: string, songs: Song[]) => {
     fs.writeFileSync(
       path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
       JSON.stringify(playlist, null, 2),
-      "utf-8"
+      "utf-8",
     );
     console.log("yt_playlist was added to playlist successfully!");
     return true;
-  } catch (error) {
+  } catch (error: any) {
     const cleanPlaylistID = sanitizePlaylistID(playlistID);
     if (error.code === "ENOENT") {
       console.log(
-        `playlist data does not exist for ${cleanPlaylistID}\ncreating new data..`
+        `playlist data does not exist for ${cleanPlaylistID}\ncreating new data..`,
       );
       fs.writeFileSync(
         path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
         JSON.stringify(songs, null, 2),
-        "utf-8"
+        "utf-8",
       );
       console.log("playlist data was created successfully!");
       return true;
@@ -106,7 +106,7 @@ export const executeAddToPlaylist = async (
   playlistID: string,
   songID: string,
   songQueue: SongQueue,
-  sendReplyFunction: sendReplyFunction
+  sendReplyFunction: sendReplyFunction,
 ) => {
   try {
     if (!playlistID) {
@@ -129,14 +129,14 @@ export const executeAddToPlaylist = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(
-                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`
+                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`,
               )
               .setDescription(
                 `The song ${
                   currentSong.title
                 } was added to the playlist ${sanitizePlaylistID(
-                  playlistID
-                )} successfully!`
+                  playlistID,
+                )} successfully!`,
               )
               .setColor("DarkBlue"),
           ],
@@ -147,7 +147,7 @@ export const executeAddToPlaylist = async (
             new EmbedBuilder()
               .setTitle("Song ID is missing!")
               .setDescription(
-                "Please provide a song name/url to add to the playlist."
+                "Please provide a song name/url to add to the playlist.",
               )
               .setColor("DarkGold"),
           ],
@@ -172,14 +172,14 @@ export const executeAddToPlaylist = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(
-                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`
+                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`,
               )
               .setDescription(
                 `The song ${
                   toAdd.title
                 } was added to the playlist ${sanitizePlaylistID(
-                  playlistID
-                )} successfully!`
+                  playlistID,
+                )} successfully!`,
               )
               .setColor("DarkBlue"),
           ],
@@ -201,15 +201,15 @@ export const executeAddToPlaylist = async (
             new EmbedBuilder()
               .setTitle(
                 `Added ${result.title} to playlist ${sanitizePlaylistID(
-                  playlistID
-                )}!`
+                  playlistID,
+                )}!`,
               )
               .setDescription(
                 `All the songs in the playlist ${
                   result.title
                 } were added to the playlist ${sanitizePlaylistID(
-                  playlistID
-                )} successfully!`
+                  playlistID,
+                )} successfully!`,
               )
               .setColor("DarkBlue"),
           ],
@@ -235,14 +235,14 @@ export const executeAddToPlaylist = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(
-                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`
+                `Added song to playlist ${sanitizePlaylistID(playlistID)}!`,
               )
               .setDescription(
                 `The song ${
                   toAdd.title
                 } was added to the playlist ${sanitizePlaylistID(
-                  playlistID
-                )} successfully!`
+                  playlistID,
+                )} successfully!`,
               )
               .setColor("DarkBlue"),
           ],
@@ -256,7 +256,7 @@ export const executeAddToPlaylist = async (
         new EmbedBuilder()
           .setTitle("Could not add the song to the playlist!")
           .setDescription(
-            "Something went wrong while adding the song to the playlist."
+            "Something went wrong while adding the song to the playlist.",
           )
           .setColor("DarkRed"),
       ],

@@ -17,16 +17,19 @@ export const StopSongCommand: Command = {
     client: Client,
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
-    audioPlayer: AudioPlayer
+    audioPlayer: AudioPlayer,
   ) => {
     executeStopSong(
       client,
       interaction.member as GuildMember,
       songQueue,
       audioPlayer,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

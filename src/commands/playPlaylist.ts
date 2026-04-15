@@ -26,7 +26,7 @@ export const PlayPlaylistCommand: Command = {
     client: Client,
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
-    audioPlayer: AudioPlayer
+    audioPlayer: AudioPlayer,
   ) => {
     executePlayPlaylist(
       client,
@@ -34,9 +34,12 @@ export const PlayPlaylistCommand: Command = {
       interaction.options.get("id", true).value as string,
       songQueue,
       audioPlayer,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

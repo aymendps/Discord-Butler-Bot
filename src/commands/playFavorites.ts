@@ -31,7 +31,7 @@ export const PlayFavoritesCommand: Command = {
     client: Client,
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
-    audioPlayer: AudioPlayer
+    audioPlayer: AudioPlayer,
   ) => {
     executePlayFavorites(
       client,
@@ -40,9 +40,12 @@ export const PlayFavoritesCommand: Command = {
       interaction.options.get("member")?.value?.toString()?.trim(),
       songQueue,
       audioPlayer,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

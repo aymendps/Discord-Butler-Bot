@@ -3,6 +3,7 @@ import {
   Client,
   InteractionReplyOptions,
   ApplicationCommandOptionType,
+  MessageCreateOptions,
 } from "discord.js";
 import { sendInteractionReply } from ".";
 import { executeAddSong } from "../functions/addSong";
@@ -23,14 +24,17 @@ export const AddSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeAddSong(
       interaction.options.get("url", true).value as string,
       songQueue,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

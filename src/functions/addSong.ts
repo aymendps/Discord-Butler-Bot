@@ -5,6 +5,10 @@ import play, { SpotifyAlbum, SpotifyPlaylist, SpotifyTrack } from "play-dl";
 import * as ytdl from "@distube/ytdl-core";
 import { getInnertubeAgent, ytdlAgent } from "../main";
 import { YTNodes } from "youtubei.js";
+const fetch = require("isomorphic-unfetch");
+import type { SpotifyUrlInfoModule } from "spotify-url-info";
+const spotifyUrlInfo = require("spotify-url-info") as SpotifyUrlInfoModule;
+const { getPreview, getTracks } = spotifyUrlInfo(fetch);
 
 const checkForTimeStamp = (url: string, songDuration: number) => {
   const index = url.indexOf("t=");
@@ -66,7 +70,7 @@ const SUPPORTED_ALT_PLATFORMS = [
 export const addSong = async (
   url: string,
   songQueue: SongQueue,
-  useThisRawSongInstead: Song = null
+  useThisRawSongInstead: Song = null,
 ): Promise<Song> => {
   try {
     if (url) {
@@ -75,7 +79,7 @@ export const addSong = async (
       const altPlatform = SUPPORTED_ALT_PLATFORMS.find(
         (platform) =>
           url.startsWith("https://" + platform.prefix) ||
-          url.startsWith("https://www." + platform.prefix)
+          url.startsWith("https://www." + platform.prefix),
       );
 
       if (altPlatform) {
@@ -131,7 +135,7 @@ export const addSong = async (
             duration: Number(songInfo.videoDetails.lengthSeconds),
             seek: checkForTimeStamp(
               url,
-              Number(songInfo.videoDetails.lengthSeconds)
+              Number(songInfo.videoDetails.lengthSeconds),
             ),
             isLive: songInfo.videoDetails.isLive,
             isYoutubeBased: true,
@@ -158,46 +162,45 @@ export const addSong = async (
           return song;
         }
       } else if (url.startsWith("https") && url.includes("spotify")) {
-        if (play.is_expired()) {
-          await play.refreshToken();
-        }
+        // if (play.is_expired()) {
+        //   await play.refreshToken();
+        // }
 
-        const songInfo = await play.spotify(url);
+        const songInfo = await getPreview(url, {
+          headers: { "user-agent": "googlebot" },
+        });
 
         if (songInfo.type === "track") {
-          const track = songInfo as SpotifyTrack;
           const song: Song = {
-            title: track.artists[0].name + " " + track.name,
-            url: track.url,
-            thumbnail_url: track.thumbnail.url,
-            duration: track.durationInSec,
+            title: songInfo.artist + " " + songInfo.track,
+            url: songInfo.link,
+            thumbnail_url: songInfo.image,
+            duration: -1,
             seek: 0,
             isYoutubeBased: true,
           };
 
           songQueue.push(song);
           return {
-            title: `Track - ${track.artists[0].name + " | " + track.name}`,
-            url: track.url,
-            thumbnail_url: track.thumbnail.url,
-            duration: track.durationInSec,
+            title: `Track - ${songInfo.artist + " | " + songInfo.track}`,
+            url: songInfo.link,
+            thumbnail_url: songInfo.image,
+            duration: -1,
             seek: 0,
             isYoutubeBased: true,
           };
         } else if (songInfo.type === "album") {
-          const album = songInfo as SpotifyAlbum;
-          const albumTracks = await album.all_tracks();
-
-          console.log(albumTracks);
+          const album = songInfo;
+          const albumTracks = await getTracks(url, {
+            headers: { "user-agent": "googlebot" },
+          });
 
           const songs: Song[] = albumTracks.map((t) => {
             return {
-              title: t.artists[0].name + " " + t.name,
-              url: t.url,
-              thumbnail_url: t.thumbnail
-                ? t.thumbnail.url
-                : album.thumbnail.url,
-              duration: t.durationInSec,
+              title: t.artist + " " + t.name,
+              url: t.uri,
+              thumbnail_url: album.image,
+              duration: t.duration,
               seek: 0,
               isYoutubeBased: true,
             };
@@ -207,25 +210,25 @@ export const addSong = async (
             songQueue.push(song);
           });
           return {
-            title: `Album - ${album.name} - ${songs.length} Tracks`,
-            url: album.url,
-            thumbnail_url: album.thumbnail.url,
+            title: `Album - ${album.track} - ${songs.length} Tracks`,
+            url: album.link,
+            thumbnail_url: album.image,
             duration: songs[0].duration,
             seek: 0,
             isYoutubeBased: true,
           };
         } else if (songInfo.type === "playlist") {
-          const playlist = songInfo as SpotifyPlaylist;
-          const playlistTracks = await playlist.all_tracks();
+          const playlist = songInfo;
+          const playlistTracks = await getTracks(url, {
+            headers: { "user-agent": "googlebot" },
+          });
 
           const songs: Song[] = playlistTracks.map((t) => {
             return {
-              title: t.artists[0].name + " " + t.name,
-              url: t.url,
-              thumbnail_url: t.thumbnail
-                ? t.thumbnail.url
-                : playlist.thumbnail.url,
-              duration: t.durationInSec,
+              title: t.artist + " " + t.name,
+              url: t.uri,
+              thumbnail_url: playlist.image,
+              duration: t.duration,
               seek: 0,
               isYoutubeBased: true,
             };
@@ -235,9 +238,9 @@ export const addSong = async (
             songQueue.push(song);
           });
           return {
-            title: `Playlist - ${playlist.name} - ${songs.length} Tracks`,
-            url: playlist.url,
-            thumbnail_url: playlist.thumbnail.url,
+            title: `Playlist - ${playlist.track} - ${songs.length} Tracks`,
+            url: playlist.link,
+            thumbnail_url: playlist.image,
             duration: songs[0].duration,
             seek: 0,
             isYoutubeBased: true,
@@ -277,7 +280,7 @@ export const executeAddSong = async (
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction,
   useThisRawSongInstead: Song = null,
-  wasAutoPlayed: boolean = false
+  wasAutoPlayed: boolean = false,
 ) => {
   if (!urlArgs && !useThisRawSongInstead) {
     sendReplyFunction({
@@ -306,13 +309,13 @@ export const executeAddSong = async (
             wasAutoPlayed
               ? `[Auto-Played | ${songQueue.getAutoPlayMode()}] ${song.title.substring(
                   0,
-                  220
+                  220,
                 )}`
-              : song.title.substring(0, 254)
+              : song.title.substring(0, 254),
           )
           .setURL(song.url)
           .setDescription(
-            "Added " + song.title + " to the queue: #" + songQueue.length()
+            "Added " + song.title + " to the queue: #" + songQueue.length(),
           )
           .setThumbnail(song.thumbnail_url)
           .setColor("DarkGreen"),
@@ -323,7 +326,7 @@ export const executeAddSong = async (
       embeds: [
         new EmbedBuilder()
           .setDescription(
-            "The requested song could not be added / found. Make sure the URL is valid!"
+            "The requested song could not be added / found. Make sure the URL is valid!",
           )
           .setColor("DarkRed"),
       ],

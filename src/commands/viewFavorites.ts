@@ -25,9 +25,12 @@ export const ViewFavoritesCommand: Command = {
       client,
       interaction.member as GuildMember,
       interaction.options.get("member")?.value?.toString()?.trim(),
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

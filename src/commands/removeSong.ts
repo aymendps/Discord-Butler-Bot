@@ -26,15 +26,18 @@ export const RemoveSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeRemoveSong(
       interaction.member as GuildMember,
       songQueue,
       interaction.options.get("number")?.value?.toString()?.trim(),
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

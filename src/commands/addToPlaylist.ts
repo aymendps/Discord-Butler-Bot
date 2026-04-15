@@ -31,15 +31,18 @@ export const AddToPlaylistCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeAddToPlaylist(
       interaction.options.get("playlist", true).value as string,
       interaction.options.get("song", false)?.value as string,
       songQueue,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

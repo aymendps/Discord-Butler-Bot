@@ -30,15 +30,18 @@ export const AutoPlayNextSongCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
     executeAutoPlayNextSong(
       interaction.member as GuildMember,
       interaction.options.get("source", false)?.value as SongQueueAutoPlayMode,
       songQueue,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

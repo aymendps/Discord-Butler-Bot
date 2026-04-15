@@ -28,15 +28,18 @@ export const AIChatJoinConversationCommand: Command = {
     interaction: ChatInputCommandInteraction,
     songQueue: SongQueue,
     audioPlayer: AudioPlayer,
-    AIChatManagerInstance: AIChatManager
+    AIChatManagerInstance: AIChatManager,
   ) => {
     executeAIChatJoinConversation(
       interaction.member as GuildMember,
       interaction.options.get("convo", true).value as string,
       AIChatManagerInstance,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

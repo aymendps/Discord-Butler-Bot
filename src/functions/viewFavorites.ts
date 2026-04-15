@@ -8,7 +8,7 @@ export const executeViewFavorites = async (
   client: Client,
   member: GuildMember,
   memberTagArgs: string,
-  sendReplyFunction: sendReplyFunction
+  sendReplyFunction: sendReplyFunction,
 ) => {
   try {
     let username = member.user.username;
@@ -16,7 +16,7 @@ export const executeViewFavorites = async (
 
     if (memberTagArgs) {
       const taggedMember = await member.guild.members.fetch(
-        memberTagArgs.slice(0, -1).substring(2)
+        memberTagArgs.slice(0, -1).substring(2),
       );
       if (taggedMember) {
         username = taggedMember.user.username;
@@ -26,7 +26,7 @@ export const executeViewFavorites = async (
 
     const file = fs.readFileSync(
       path.join(__dirname, `../../.data/${username}.data`),
-      "utf-8"
+      "utf-8",
     );
     const faves: Song[] = JSON.parse(file);
     const fields = faves.map((song, index) => {
@@ -48,14 +48,14 @@ export const executeViewFavorites = async (
         ],
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === "ENOENT") {
       sendReplyFunction({
         embeds: [
           new EmbedBuilder()
             .setTitle("No Favorites..?")
             .setDescription(
-              "You don't have any songs that were added to your favorites!"
+              "You don't have any songs that were added to your favorites!",
             )
             .setColor("DarkGold"),
         ],

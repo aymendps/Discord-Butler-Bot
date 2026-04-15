@@ -14,10 +14,13 @@ export const ViewQueueCommand: Command = {
   run: async (
     client: Client,
     interaction: ChatInputCommandInteraction,
-    songQueue: SongQueue
+    songQueue: SongQueue,
   ) => {
-    executeViewQueue(songQueue, async (options: InteractionReplyOptions) => {
-      return await sendInteractionReply(interaction, options);
+    executeViewQueue(songQueue, async (options) => {
+      return await sendInteractionReply(
+        interaction,
+        options as InteractionReplyOptions,
+      );
     });
   },
 };

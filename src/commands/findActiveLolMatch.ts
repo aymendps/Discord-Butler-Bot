@@ -23,9 +23,12 @@ export const findActiveLolMatchCommand: Command = {
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     executeFindLolMatch(
       interaction.options.get("summoner").value as string,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };

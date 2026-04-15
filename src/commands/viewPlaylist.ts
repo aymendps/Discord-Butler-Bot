@@ -22,9 +22,12 @@ export const ViewPlaylistCommand: Command = {
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     executeViewPlaylist(
       interaction.options.get("playlist", true).value as string,
-      async (options: InteractionReplyOptions) => {
-        return await sendInteractionReply(interaction, options);
-      }
+      async (options) => {
+        return await sendInteractionReply(
+          interaction,
+          options as InteractionReplyOptions,
+        );
+      },
     );
   },
 };
