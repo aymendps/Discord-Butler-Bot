@@ -171,7 +171,7 @@ export const playSong = async (
             userAgent: "googlebot",
             addHeader: ["referer:youtube.com"],
             // @ts-ignore
-            extractorArgs: "youtube:player_client=default,-android_sdkless",
+            // extractorArgs: "youtube:player_client=default,-android_sdkless",
             noCheckCertificates: true,
             noWarnings: true,
             preferFreeFormats: true,
