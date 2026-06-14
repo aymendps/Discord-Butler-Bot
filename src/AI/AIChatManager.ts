@@ -36,7 +36,7 @@ export class AIChatManager {
   private conversationHistoryTimeouts: Map<string, NodeJS.Timeout>;
   private userConversations: Map<string, string>;
   private userIDs: Map<string, string>;
-  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 10 * 60 * 1000; // 10 minutes
+  private readonly CHAT_HISTORY_TIMEOUT_MS: number = 60 * 60 * 1000; // 60 minutes
 
   constructor() {
     this.chatModel = "hf.co/Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF:Q4_K_M";
