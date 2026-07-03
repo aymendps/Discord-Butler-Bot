@@ -1,6 +1,11 @@
 import * as dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: __dirname + "/../.env" });
+const basePath = (process as any).pkg
+  ? path.dirname(process.execPath)
+  : __dirname;
+
+dotenv.config({ path: path.join(basePath, "/../.env") });
 
 import * as Discord from "discord.js";
 import { TOKEN } from "./config";

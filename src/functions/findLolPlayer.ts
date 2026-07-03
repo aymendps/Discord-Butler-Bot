@@ -1,7 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { EmbedBuilder } from "discord.js";
-import * as dotenv from "dotenv";
-dotenv.config({ path: __dirname + "/../../.env" });
+
 import { RIOT_TOKEN } from "../config";
 import { ChampionMasteryDTO } from "../interfaces/championMastery.dto";
 import { LeagueEntryDTO } from "../interfaces/leagueEntry.dto";

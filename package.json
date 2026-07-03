@@ -1,7 +1,16 @@
 {
+  "name": "discord-butler-bot",
+  "bin": "./build/main.js",
+  "pkg": {
+    "targets": ["node24-win-x64"],
+    "outputPath": "dist",
+    "assets": ["./.data/**/*"]
+  },
   "scripts": {
     "start": "ts-node src/main.ts",
-    "dev": "nodemon src/main.ts"
+    "dev": "nodemon src/main.ts",
+    "build": "tsc",
+    "package": "npm run build && pkg . --sea"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -26,6 +35,7 @@
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/he": "^1.2.3",
     "@types/node": "^25.6.0",
+    "@yao-pkg/pkg": "^6.21.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
