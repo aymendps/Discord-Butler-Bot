@@ -9,7 +9,7 @@
     "target": "es2018",
     "sourceMap": true,
     "rootDir": "./src",
-    "outDir": "./build",
+    "outDir": "./dist",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,

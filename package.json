@@ -1,9 +1,9 @@
 {
   "name": "discord-butler-bot",
-  "bin": "./build/main.js",
+  "bin": "./dist/main.js",
   "pkg": {
     "targets": ["node24-win-x64"],
-    "outputPath": "dist",
+    "outputPath": "build",
     "assets": ["./.data/**/*"]
   },
   "scripts": {
