@@ -2,20 +2,32 @@ import path from "path";
 import * as dotenv from "dotenv";
 
 const basePath = (process as any).pkg
-  ? path.join(__dirname, '../.env.package')
+  ? path.join(__dirname, "../.env.package")
   : ".env.dev";
 
-dotenv.config({path: basePath, quiet: true});
+dotenv.config({ path: basePath, quiet: true });
 
-if((process as any).pkg) {
-    process.env.YOUTUBE_DL_DIR = path.join(path.dirname(process.execPath), process.env.YOUTUBE_DL_DIR);
-    process.env.YOUTUBE_DL_DIR_EXE = path.join(path.dirname(process.execPath), process.env.YOUTUBE_DL_DIR_EXE);
-    process.env.FFMPEG_PATH = path.join(path.dirname(process.execPath), process.env.FFMPEG_PATH);
-    process.env.FFPROBE_PATH = path.join(path.dirname(process.execPath), process.env.FFPROBE_PATH);
-    console.log(process.env.YOUTUBE_DL_DIR);
-    console.log(process.env.YOUTUBE_DL_DIR_EXE);
-    console.log(process.env.FFMPEG_PATH);
-    console.log(process.env.FFPROBE_PATH);
+if ((process as any).pkg) {
+  process.env.YOUTUBE_DL_DIR = path.join(
+    path.dirname(process.execPath),
+    process.env.YOUTUBE_DL_DIR
+  );
+  process.env.YOUTUBE_DL_DIR_EXE = path.join(
+    path.dirname(process.execPath),
+    process.env.YOUTUBE_DL_DIR_EXE
+  );
+  process.env.FFMPEG_PATH = path.join(
+    path.dirname(process.execPath),
+    process.env.FFMPEG_PATH
+  );
+  process.env.FFPROBE_PATH = path.join(
+    path.dirname(process.execPath),
+    process.env.FFPROBE_PATH
+  );
+  console.log(process.env.YOUTUBE_DL_DIR);
+  console.log(process.env.YOUTUBE_DL_DIR_EXE);
+  console.log(process.env.FFMPEG_PATH);
+  console.log(process.env.FFPROBE_PATH);
 }
 
 import * as Discord from "discord.js";
@@ -28,6 +40,7 @@ import { spawn } from "child_process";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
+import connectDB from "./database/connectDB";
 
 // @ts-ignore
 
@@ -101,6 +114,7 @@ const updateYoutubeDl = (binaryPath: string) =>
 
 const main = async () => {
   try {
+    await connectDB();
     console.log("\nUpdating yt-dlp...");
     const result = await updateYoutubeDl(process.env.YOUTUBE_DL_DIR_EXE);
     console.log(result.stdout);
