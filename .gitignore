@@ -1,9 +1,12 @@
 # compiled output
 /dist
 /build
+/build_deps
 /node_modules
 .env
+.env.*
 /.data
+/data
 # Logs
 logs
 *.log
