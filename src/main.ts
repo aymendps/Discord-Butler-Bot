@@ -1,11 +1,22 @@
-import * as dotenv from "dotenv";
 import path from "path";
+import * as dotenv from "dotenv";
 
 const basePath = (process as any).pkg
-  ? path.dirname(process.execPath)
-  : __dirname;
+  ? path.join(__dirname, '../.env.package')
+  : ".env.dev";
 
-dotenv.config({ path: path.join(basePath, "/../.env") });
+dotenv.config({path: basePath, quiet: true});
+
+if((process as any).pkg) {
+    process.env.YOUTUBE_DL_DIR = path.join(path.dirname(process.execPath), process.env.YOUTUBE_DL_DIR);
+    process.env.YOUTUBE_DL_DIR_EXE = path.join(path.dirname(process.execPath), process.env.YOUTUBE_DL_DIR_EXE);
+    process.env.FFMPEG_PATH = path.join(path.dirname(process.execPath), process.env.FFMPEG_PATH);
+    process.env.FFPROBE_PATH = path.join(path.dirname(process.execPath), process.env.FFPROBE_PATH);
+    console.log(process.env.YOUTUBE_DL_DIR);
+    console.log(process.env.YOUTUBE_DL_DIR_EXE);
+    console.log(process.env.FFMPEG_PATH);
+    console.log(process.env.FFPROBE_PATH);
+}
 
 import * as Discord from "discord.js";
 import { TOKEN } from "./config";
@@ -13,10 +24,10 @@ import establishListeners from "./events";
 import { SongQueue } from "./interfaces/song";
 import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import * as ytdl from "@distube/ytdl-core";
+import { spawn } from "child_process";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
-import { update as updateYoutubeDl } from "youtube-dl-exec";
 
 // @ts-ignore
 
@@ -62,6 +73,31 @@ const audioPlayer = createAudioPlayer({
     noSubscriber: NoSubscriberBehavior.Play,
   },
 });
+
+const updateYoutubeDl = (binaryPath: string) =>
+  new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    const child = spawn(binaryPath, ["-U"], { shell: false });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+        return;
+      }
+
+      reject(new Error(stderr.trim() || `yt-dlp exited with code ${code}`));
+    });
+  });
 
 const main = async () => {
   try {

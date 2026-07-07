@@ -2,14 +2,19 @@
   "name": "discord-butler-bot",
   "bin": "./dist/main.js",
   "pkg": {
-    "targets": ["node24-win-x64"],
+    "targets": [
+      "node24-win-x64"
+    ],
     "outputPath": "build",
-    "assets": ["./.data/**/*"]
+    "assets": [
+      ".env.package",
+      ".data/**/*"
+    ]
   },
   "scripts": {
     "start": "ts-node src/main.ts",
     "dev": "nodemon src/main.ts",
-    "build": "tsc",
+    "build": "tsc --build --force",
     "package": "npm run build && pkg . --sea"
   },
   "dependencies": {
@@ -28,7 +33,7 @@
     "play-dl": "github:aymendps/play-dl",
     "spotify-url-info": "^3.3.0",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^3.1.5",
+    "youtube-dl-exec": "^3.1.9",
     "youtubei.js": "^17.0.1"
   },
   "devDependencies": {

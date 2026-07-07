@@ -74,7 +74,7 @@ export const addSong = async (
 ): Promise<Song> => {
   try {
     if (url) {
-      console.log("requested song: " + url);
+      console.log("Requested song: " + url);
 
       const altPlatform = SUPPORTED_ALT_PLATFORMS.find(
         (platform) =>

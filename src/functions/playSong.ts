@@ -12,6 +12,7 @@ import {
   AudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
+  StreamType,
 } from "@discordjs/voice";
 import { Song, SongQueue } from "../interfaces/song";
 import { executeAddSong } from "./addSong";
@@ -22,7 +23,7 @@ import { executeAddSpecificToFavorites } from "./addToFavorites";
 import { executeSeekSongTimeSecondsRaw } from "./seekSongTime";
 import { PassThrough } from "stream";
 import ffmpeg from "fluent-ffmpeg";
-import { youtubeDl } from "youtube-dl-exec";
+import { create as createYtDlExec } from "youtube-dl-exec";
 import { SubprocessPromise } from "tinyspawn";
 import { exec } from "child_process";
 import { suggestSong } from "./suggestSong";
@@ -164,6 +165,8 @@ export const playSong = async (
 
       killCurrentStreamProcessPrematurely();
 
+      const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE)
+
       const stream = currentSong.isYoutubeBased
         ? youtubeDl.exec(currentSong.url, {
             format: "bestaudio/best",
@@ -175,11 +178,11 @@ export const playSong = async (
             noCheckCertificates: true,
             noWarnings: true,
             preferFreeFormats: true,
-          })
+          }, {shell: false})
         : youtubeDl.exec(currentSong.url, {
             format: "bestaudio/best",
             output: "-",
-          });
+          }, {shell: false});
 
       stream.catch((err) => {
         if (songQueue.justSeeked || songQueue.justSkipped) {
@@ -239,7 +242,9 @@ export const playSong = async (
         .on("stderr", (stderr) => {});
     }
 
-    const audioResource = createAudioResource(ffmpegStream);
+    const audioResource = createAudioResource(ffmpegStream, {
+      inputType: StreamType.OggOpus,
+    });
     audioPlayer.play(audioResource);
 
     if (allowReply) successReply(currentSong, songQueue.length());

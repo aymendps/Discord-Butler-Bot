@@ -1,4 +1,4 @@
-import { AudioPlayer, createAudioResource } from "@discordjs/voice";
+import { AudioPlayer, createAudioResource, StreamType } from "@discordjs/voice";
 import { EmbedBuilder, GuildMember } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import { Song, SongQueue } from "../interfaces/song";
@@ -7,7 +7,7 @@ import { PassThrough } from "stream";
 import ffmpeg from "fluent-ffmpeg";
 import * as ytdl from "@distube/ytdl-core";
 import { ytdlAgent } from "../main";
-import { youtubeDl } from "youtube-dl-exec";
+import { create as createYtDlExec } from "youtube-dl-exec";
 import {
   killCurrentStreamProcessPrematurely,
   setCurrentStreamProcess,
@@ -117,6 +117,8 @@ export const executeSeekSongTime = async (
 
     killCurrentStreamProcessPrematurely();
 
+    const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
+
     const stream = youtubeDl.exec(current.url, {
       format: "bestaudio/best",
       output: "-", // Send output to stdout
@@ -127,7 +129,7 @@ export const executeSeekSongTime = async (
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-    });
+    }, {shell: false});
 
     stream.catch((err) => {});
 
@@ -146,7 +148,9 @@ export const executeSeekSongTime = async (
       .on("stderr", (stderr) => {})
       .pipe(ffmpegStream);
 
-    const audioResource = createAudioResource(ffmpegStream);
+    const audioResource = createAudioResource(ffmpegStream, {
+      inputType: StreamType.OggOpus,
+    });
 
     songQueue.justSeeked = true;
 
@@ -251,6 +255,8 @@ export const executeSeekSongTimeSecondsRaw = async (
 
     killCurrentStreamProcessPrematurely();
 
+    const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
+
     const stream = youtubeDl.exec(current.url, {
       format: "bestaudio/best",
       output: "-", // Send output to stdout
@@ -261,7 +267,7 @@ export const executeSeekSongTimeSecondsRaw = async (
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-    });
+    } , {shell: false});
 
     stream.catch((err) => {});
 
@@ -280,7 +286,9 @@ export const executeSeekSongTimeSecondsRaw = async (
       .on("stderr", (stderr) => {})
       .pipe(ffmpegStream);
 
-    const audioResource = createAudioResource(ffmpegStream);
+    const audioResource = createAudioResource(ffmpegStream, {
+      inputType: StreamType.OggOpus,
+    });
 
     songQueue.justSeeked = true;
 
