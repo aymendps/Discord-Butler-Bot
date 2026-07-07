@@ -9,6 +9,6 @@ export default (client: Client) => {
 
     await client.application.commands.set(Commands);
 
-    console.log("Butler Bot is online");
+    console.log("Butler Bot is online\n");
   });
 };

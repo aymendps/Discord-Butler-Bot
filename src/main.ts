@@ -16,6 +16,7 @@ import * as ytdl from "@distube/ytdl-core";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
+import { update as updateYoutubeDl } from "youtube-dl-exec";
 
 // @ts-ignore
 
@@ -64,6 +65,10 @@ const audioPlayer = createAudioPlayer({
 
 const main = async () => {
   try {
+    console.log("\nUpdating yt-dlp...");
+    const result = await updateYoutubeDl(process.env.YOUTUBE_DL_DIR_EXE);
+    console.log(result.stdout);
+    console.log("Result: yt-dlp was updated successfully.\n");
     console.log("Establishing Butler Bot's listeners...");
     establishListeners(client, songQueue, audioPlayer, AIChatManagerInstance);
     console.log("Butler Bot is starting...");
