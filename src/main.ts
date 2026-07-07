@@ -24,10 +24,6 @@ if ((process as any).pkg) {
     path.dirname(process.execPath),
     process.env.FFPROBE_PATH
   );
-  console.log(process.env.YOUTUBE_DL_DIR);
-  console.log(process.env.YOUTUBE_DL_DIR_EXE);
-  console.log(process.env.FFMPEG_PATH);
-  console.log(process.env.FFPROBE_PATH);
 }
 
 import * as Discord from "discord.js";
