@@ -4,32 +4,29 @@ import { sanitizePlaylistID } from "./utils";
 import fs = require("fs");
 import path = require("path");
 import { Song } from "../interfaces/song";
+import { PlaylistModel } from "../database/models";
 
-const viewPlaylist = async (playlistID: string): Promise<Song[]> => {
+export const getPlaylist = async (playlistID: string): Promise<Song[]> => {
   try {
     const cleanPlaylistID = sanitizePlaylistID(playlistID);
-    const file = fs.readFileSync(
-      path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
-      "utf-8",
-    );
-    const playlist: Song[] = JSON.parse(file);
-    console.log(`playlist data was found for ${cleanPlaylistID}`);
-    return playlist;
-  } catch (error: any) {
-    const cleanPlaylistID = sanitizePlaylistID(playlistID);
-    if (error.code === "ENOENT") {
-      console.log(`playlist data does not exist for ${cleanPlaylistID}`);
-      return null;
-    } else {
-      console.log(error);
+    const playlist = await PlaylistModel.findOne({
+      playlistName: cleanPlaylistID,
+    });
+    if (!playlist) {
+      console.log(`Playlist data does not exist for ${cleanPlaylistID}`);
       return null;
     }
+    console.log(`Successfully retrieved playlist data for ${cleanPlaylistID}`);
+    return playlist.songs;
+  } catch (error: any) {
+    console.log(error);
+    return null;
   }
 };
 
 export const executeViewPlaylist = async (
   playlistID: string,
-  sendReplyFunction: sendReplyFunction,
+  sendReplyFunction: sendReplyFunction
 ) => {
   try {
     if (!playlistID) {
@@ -38,7 +35,7 @@ export const executeViewPlaylist = async (
           new EmbedBuilder()
             .setTitle("Playlist ID is missing!")
             .setDescription(
-              "Please provide a playlist ID to view the playlist.",
+              "Please provide a playlist ID to view the playlist."
             )
             .setColor("DarkGold"),
         ],
@@ -46,7 +43,7 @@ export const executeViewPlaylist = async (
       return;
     }
 
-    const playlist = await viewPlaylist(playlistID);
+    const playlist = await getPlaylist(playlistID);
 
     if (!playlist) {
       sendReplyFunction({
@@ -54,7 +51,7 @@ export const executeViewPlaylist = async (
           new EmbedBuilder()
             .setTitle("Playlist was not found!")
             .setDescription(
-              "The provided playlist ID does not exist. View all playlists with `playlist-view-all`",
+              "The provided playlist ID does not exist. View all playlists with `playlist-view-all`"
             )
             .setColor("DarkRed"),
         ],
@@ -68,7 +65,7 @@ export const executeViewPlaylist = async (
           new EmbedBuilder()
             .setTitle("Playlist is empty!")
             .setDescription(
-              "There are no songs in the playlist. Add some songs with `playlist-add`",
+              "There are no songs in the playlist. Add some songs with `playlist-add`"
             )
             .setColor("DarkGold"),
         ],
@@ -88,7 +85,7 @@ export const executeViewPlaylist = async (
             value: `[${song.title}](${song.url})`,
             inline: false,
           };
-        }),
+        })
       );
       songFields.push({
         name: "...",
@@ -102,7 +99,7 @@ export const executeViewPlaylist = async (
             value: `[${song.title}](${song.url})`,
             inline: false,
           };
-        }),
+        })
       );
     } else {
       songFields = playlist.map((song, index) => {
@@ -120,7 +117,7 @@ export const executeViewPlaylist = async (
           .setTitle(
             `Playlist: ${sanitizePlaylistID(playlistID)} - ${
               playlist.length
-            } Songs`,
+            } Songs`
           )
           .setDescription("The songs are listed in order of play")
           .addFields(...songFields)

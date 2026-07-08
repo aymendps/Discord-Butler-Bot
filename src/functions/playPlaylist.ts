@@ -6,27 +6,7 @@ import { sanitizePlaylistID } from "./utils";
 import { Song, SongQueue } from "../interfaces/song";
 import { executePlaySong } from "./playSong";
 import { AudioPlayer } from "@discordjs/voice";
-
-const getPlaylist = async (playlistID: string) => {
-  try {
-    const cleanPlaylistID = sanitizePlaylistID(playlistID);
-    const file = fs.readFileSync(
-      path.join(__dirname, `../../.data/playlistID-${cleanPlaylistID}.data`),
-      "utf-8",
-    );
-    const playlist: Song[] = JSON.parse(file);
-    console.log(`playlist data was found for ${cleanPlaylistID}`);
-    return playlist;
-  } catch (error: any) {
-    const cleanPlaylistID = sanitizePlaylistID(playlistID);
-    if (error.code === "ENOENT") {
-      console.log(`playlist data does not exist for ${cleanPlaylistID}`);
-    } else {
-      console.log(error);
-    }
-    return null;
-  }
-};
+import { getPlaylist } from "./viewPlaylist";
 
 export const executePlayPlaylist = async (
   client: Client,
@@ -34,7 +14,7 @@ export const executePlayPlaylist = async (
   playlistID: string,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
-  sendReplyFunction: sendReplyFunction,
+  sendReplyFunction: sendReplyFunction
 ) => {
   try {
     if (!playlistID) {
@@ -56,7 +36,7 @@ export const executePlayPlaylist = async (
           new EmbedBuilder()
             .setTitle("Playlist not found!")
             .setDescription(
-              "The playlist with the given ID was not found. View all created playlists using `playlist-view-all`.",
+              "The playlist with the given ID was not found. View all created playlists using `playlist-view-all`."
             )
             .setColor("DarkRed"),
         ],
@@ -70,7 +50,7 @@ export const executePlayPlaylist = async (
           new EmbedBuilder()
             .setTitle("Playlist is empty!")
             .setDescription(
-              "The playlist with the given ID is empty. Add songs to the playlist using `playlist-add`.",
+              "The playlist with the given ID is empty. Add songs to the playlist using `playlist-add`."
             )
             .setColor("DarkGold"),
         ],
@@ -88,12 +68,12 @@ export const executePlayPlaylist = async (
           .setTitle(
             `Playlist ${sanitizePlaylistID(playlistID)} - ${
               playlist.length
-            } Songs`,
+            } Songs`
           )
           .setDescription(
             `Added Playlist ${sanitizePlaylistID(playlistID)} - ${
               playlist.length
-            } Songs to the queue: #${songQueue.length()}`,
+            } Songs to the queue: #${songQueue.length()}`
           )
           .setColor("DarkGreen"),
       ],
@@ -105,7 +85,7 @@ export const executePlayPlaylist = async (
       null,
       songQueue,
       audioPlayer,
-      sendReplyFunction,
+      sendReplyFunction
     );
   } catch (error) {
     console.log(error);

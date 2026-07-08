@@ -2,16 +2,12 @@ import { APIEmbedField, EmbedBuilder } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import * as fs from "node:fs/promises";
 import path = require("path");
+import { PlaylistModel } from "../database/models";
 
-const viewAllPlaylists = async (): Promise<string[]> => {
+const getAllPlaylists = async (): Promise<string[]> => {
   try {
-    const dataFolder = await fs.readdir(path.join(__dirname, "../../.data"));
-    const playlistIDs = dataFolder
-      .filter(
-        (file) => file.startsWith("playlistID-") && file.endsWith(".data")
-      )
-      .map((file) => file.replace("playlistID-", "").replace(".data", ""));
-    return playlistIDs;
+    const playlists = await PlaylistModel.find({});
+    return playlists.map((playlist) => playlist.playlistName);
   } catch (error) {
     console.log(error);
     return [];
@@ -22,7 +18,7 @@ export const executeViewPlaylistAll = async (
   sendReplyFunction: sendReplyFunction
 ) => {
   try {
-    const playlistIDs = await viewAllPlaylists();
+    const playlistIDs = await getAllPlaylists();
 
     if (playlistIDs.length === 0) {
       sendReplyFunction({
