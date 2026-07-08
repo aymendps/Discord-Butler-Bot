@@ -88,8 +88,8 @@ const handleAIChatMessage = async (
   AIChatManagerInstance: AIChatManager,
   message: Message,
   sendReply: (
-    options: MessageCreateOptions | InteractionReplyOptions,
-  ) => Promise<Message<true>>,
+    options: MessageCreateOptions | InteractionReplyOptions
+  ) => Promise<Message<true>>
 ): Promise<boolean> => {
   if (
     REQUIRED_BOT_AI_CHANNEL_ID === message.channel.id &&
@@ -104,7 +104,7 @@ const handleAIChatMessage = async (
         message.member.user.username,
         message.member.user.id,
         prompt,
-        sendReply,
+        sendReply
       );
 
       await waitingMessage.edit({
@@ -120,7 +120,7 @@ const handleAIChatMessage = async (
           song,
           songQueue,
           audioPlayer,
-          sendReply,
+          sendReply
         );
       }
     } catch (error) {
@@ -139,7 +139,7 @@ const handleAIChatMessage = async (
     ) {
       await sendReply({
         content: `Hey! Follow me to my ${channelMention(
-          REQUIRED_BOT_AI_CHANNEL_ID,
+          REQUIRED_BOT_AI_CHANNEL_ID
         )} and we'll continue there. We don't want to bother the others in this channel!`,
       });
       return true;
@@ -152,21 +152,21 @@ export default (
   client: Client,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
-  AIChatManagerInstance: AIChatManager,
+  AIChatManagerInstance: AIChatManager
 ) => {
   client.once("messageCreate", async (message: Message) => {
     const requiredBotAIChannel = message.guild.channels.cache.find(
-      (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME,
+      (channel) => channel.name === BUTLER_BOT_CHANNEL_NAME
     );
     REQUIRED_BOT_AI_CHANNEL_ID = requiredBotAIChannel.id;
     console.log(
-      `Set required bot AI channel ID to ${REQUIRED_BOT_AI_CHANNEL_ID}`,
+      `Set required bot AI channel ID to ${REQUIRED_BOT_AI_CHANNEL_ID}\n`
     );
   });
 
   client.on("messageCreate", async (message: Message) => {
     const sendReply = async (
-      options: MessageCreateOptions | InteractionReplyOptions,
+      options: MessageCreateOptions | InteractionReplyOptions
     ) => {
       const channel = message.channel as TextChannel;
       return await channel.send(options as MessageCreateOptions);
@@ -181,7 +181,7 @@ export default (
         audioPlayer,
         AIChatManagerInstance,
         message,
-        sendReply,
+        sendReply
       )
     ) {
       return;
@@ -195,13 +195,13 @@ export default (
         message.member,
         args,
         AIChatManagerInstance,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "ai-leave-convo")) {
       executeAIChatLeaveConversation(
         message.member,
         AIChatManagerInstance,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "autoplay")) {
       const args = message.content.substring(9).trim();
@@ -218,7 +218,7 @@ export default (
         message.member,
         source as SongQueueAutoPlayMode,
         songQueue,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "play-faves")) {
       const args = message.content.substring(11).trim().split(/\s+/);
@@ -231,7 +231,7 @@ export default (
         memberTag,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "playlist-add")) {
       // prompt would look like this: <playlist-add playlist="playlist name" song="song name/url"
@@ -255,7 +255,7 @@ export default (
         args,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "play-file")) {
       executePlaySongFromFile(
@@ -264,7 +264,7 @@ export default (
         message.attachments.first(),
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "play")) {
       const args = message.content.substring(5).trim();
@@ -274,7 +274,7 @@ export default (
         args,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "queue")) {
       executeViewQueue(songQueue, sendReply);
@@ -287,7 +287,7 @@ export default (
       } else {
         boundedMax = Math.min(
           Math.max(boundedMax, 1),
-          SEARCH_MAX_NUMBER_OF_RESULTS,
+          SEARCH_MAX_NUMBER_OF_RESULTS
         );
       }
       executeSearchSong(name, boundedMax, songQueue, sendReply);
@@ -303,7 +303,7 @@ export default (
         name?.trim(),
         source as SongQueueAutoPlaySource,
         songQueue,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "skip")) {
       executeSkipSong(
@@ -311,7 +311,7 @@ export default (
         message.member,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "add-fave")) {
       executeAddToFavorites(client, message.member, songQueue, sendReply);
@@ -324,7 +324,7 @@ export default (
         message.member,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "loop")) {
       executeLoopSong(songQueue, sendReply);
@@ -340,7 +340,7 @@ export default (
         args,
         songQueue,
         audioPlayer,
-        sendReply,
+        sendReply
       );
     } else if (message.content.startsWith(PREFIX + "faves")) {
       const args = message.content.substring(6).trim();
