@@ -34,7 +34,7 @@ import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import * as ytdl from "@distube/ytdl-core";
 import { spawn, spawnSync } from "child_process";
 import * as fs from "fs";
-import { Innertube } from "youtubei.js";
+import { Innertube, Log } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
 import connectDB, { startBotLockHeartbeat } from "./database/connectDB";
 
@@ -45,6 +45,8 @@ const agent = JSON.parse(
 );
 
 export const ytdlAgent = ytdl.createAgent(agent);
+
+Log.setLevel(Log.Level.ERROR);
 
 let innertubeAgent: Innertube = null;
 
