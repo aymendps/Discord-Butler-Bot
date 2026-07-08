@@ -84,41 +84,40 @@ const audioPlayer = createAudioPlayer({
 });
 
 const updateYoutubeDl = (binaryPath: string) =>
-  new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const child = spawn(binaryPath, ["-U"], { shell: false });
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout?.on("data", (chunk) => {
-      stdout += chunk.toString();
+  new Promise<void>((resolve, reject) => {
+    console.log("\nUpdating yt-dlp...");
+    const child = spawn(binaryPath, ["--update-to", "nightly"], {
+      shell: false,
+      stdio: "inherit",
     });
-
-    child.stderr?.on("data", (chunk) => {
-      stderr += chunk.toString();
+    child.on("error", (err) => {
+      reject(err);
+      console.log(err);
+      process.exit(1);
     });
-
-    child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) {
-        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+        resolve();
+        console.log("Result: yt-dlp was updated successfully.");
         return;
       }
-
-      reject(new Error(stderr.trim() || `yt-dlp exited with code ${code}`));
+      reject(new Error(`Result: yt-dlp exited with code ${code}`));
+      process.exit(1);
     });
   });
 
 async function ensureDenoInstalled(): Promise<void> {
+  console.log("Checking if Deno is installed...");
   const check = spawnSync("deno", ["--version"], {
     stdio: "ignore",
   });
 
   if (check.status === 0) {
-    console.log("\nDeno is already installed.");
+    console.log("Deno is already installed.");
     return;
   }
 
-  console.log("\nDeno not found. Installing...");
+  console.log("Deno not found. Installing...");
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
@@ -129,14 +128,19 @@ async function ensureDenoInstalled(): Promise<void> {
       }
     );
 
-    child.on("error", reject);
+    child.on("error", (err) => {
+      reject(err);
+      console.log(err);
+      process.exit(1);
+    });
 
     child.on("close", (code) => {
       if (code === 0) {
-        console.log("Deno installed successfully.");
+        console.log("Result: Deno installed successfully.");
         resolve();
       } else {
-        reject(new Error(`Deno installer exited with code ${code}`));
+        reject(new Error(`Result: Deno installer exited with code ${code}`));
+        process.exit(1);
       }
     });
   });
@@ -145,12 +149,10 @@ async function ensureDenoInstalled(): Promise<void> {
 const main = async () => {
   try {
     await ensureDenoInstalled();
+    await updateYoutubeDl(process.env.YOUTUBE_DL_DIR_EXE);
     await connectDB();
     await startBotLockHeartbeat();
-    console.log("\nUpdating yt-dlp...");
-    const result = await updateYoutubeDl(process.env.YOUTUBE_DL_DIR_EXE);
-    console.log(result.stdout);
-    console.log("Result: yt-dlp was updated successfully.\n");
+    await AIChatManagerInstance.logHealthStatus();
     console.log("Establishing Butler Bot's listeners...");
     establishListeners(client, songQueue, audioPlayer, AIChatManagerInstance);
     console.log("Butler Bot is starting...");

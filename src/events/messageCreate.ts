@@ -122,7 +122,7 @@ const handleAIChatMessage = async (
         );
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       await waitingMessage.edit({
         content:
           "Whoops! An error occured and I couldn't generate a response! Try again later!",

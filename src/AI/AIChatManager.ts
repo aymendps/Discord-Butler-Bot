@@ -45,7 +45,18 @@ export class AIChatManager {
     this.conversationHistoryTimeouts = new Map<string, NodeJS.Timeout>();
     this.userConversations = new Map<string, string>();
     this.userIDs = new Map<string, string>();
-    console.log(`Initialized AIChatManager with model ${this.chatModel}`);
+  }
+
+  public async logHealthStatus() {
+    try {
+      console.log(`\nAIChatManager: initialized with model ${this.chatModel}`);
+      await axios.get(process.env.OLLAMA_API_HEALTH);
+      console.log("AIChatManager: OLLAMA API is up and running.\n");
+    } catch (error) {
+      console.error(
+        "AIChatManager: OLLAMA API is not reachable.\nAIChatManager: If you would like to use the AI chat feature, please ensure that the OLLAMA API is running, and that the AI model is installed.\n"
+      );
+    }
   }
 
   private generateConversationID(): string {
