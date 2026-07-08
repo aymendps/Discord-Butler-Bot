@@ -36,7 +36,7 @@ import { spawn } from "child_process";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
-import connectDB from "./database/connectDB";
+import connectDB, { startBotLockHeartbeat } from "./database/connectDB";
 
 // @ts-ignore
 
@@ -111,6 +111,7 @@ const updateYoutubeDl = (binaryPath: string) =>
 const main = async () => {
   try {
     await connectDB();
+    await startBotLockHeartbeat();
     console.log("\nUpdating yt-dlp...");
     const result = await updateYoutubeDl(process.env.YOUTUBE_DL_DIR_EXE);
     console.log(result.stdout);
