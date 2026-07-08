@@ -32,7 +32,7 @@ import establishListeners from "./events";
 import { SongQueue } from "./interfaces/song";
 import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import * as ytdl from "@distube/ytdl-core";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import * as fs from "fs";
 import { Innertube } from "youtubei.js";
 import { AIChatManager } from "./AI/AIChatManager";
@@ -108,8 +108,43 @@ const updateYoutubeDl = (binaryPath: string) =>
     });
   });
 
+export async function ensureDenoInstalled(): Promise<void> {
+  const check = spawnSync("deno", ["--version"], {
+    stdio: "ignore",
+  });
+
+  if (check.status === 0) {
+    console.log("\nDeno is already installed.");
+    return;
+  }
+
+  console.log("\nDeno not found. Installing...");
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(
+      "powershell",
+      ["irm https://deno.land/install.ps1 | iex"],
+      {
+        stdio: "inherit",
+      }
+    );
+
+    child.on("error", reject);
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log("Deno installed successfully.");
+        resolve();
+      } else {
+        reject(new Error(`Deno installer exited with code ${code}`));
+      }
+    });
+  });
+}
+
 const main = async () => {
   try {
+    await ensureDenoInstalled();
     await connectDB();
     await startBotLockHeartbeat();
     console.log("\nUpdating yt-dlp...");
