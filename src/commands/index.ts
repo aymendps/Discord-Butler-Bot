@@ -6,8 +6,6 @@ import {
 } from "discord.js";
 import { Command } from "../interfaces/command";
 import { AddSongCommand } from "./addSong";
-import { findActiveLolMatchCommand } from "./findActiveLolMatch";
-import { FindLolPlayerCommand } from "./findLolPlayer";
 import { HelloCommand } from "./hello";
 import { LoopSongCommand } from "./loopSong";
 import { PlaySongCommand } from "./playSong";
@@ -64,8 +62,6 @@ export const Commands: Command[] = [
   PlayPlaylistCommand,
   ViewPlaylistCommand,
   ViewPlaylistAllCommand,
-  FindLolPlayerCommand,
-  findActiveLolMatchCommand,
   AIChatJoinConversationCommand,
   AIChatLeaveConversationCommand,
   AutoPlayNextSongCommand,
