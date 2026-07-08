@@ -1,5 +1,6 @@
 {
   "name": "discord-butler-bot",
+  "version": "1.0.0.0",
   "bin": "./dist/main.js",
   "pkg": {
     "targets": [
@@ -15,7 +16,9 @@
     "start": "ts-node src/main.ts",
     "dev": "nodemon src/main.ts",
     "build": "tsc --build --force",
-    "package": "npm run build && pkg . --sea"
+    "package": "pkg . --sea && node -e \"require('fs').copyFileSync('LICENSE','build/LICENSE')\"",
+    "sign": "npx resedit build/discord-butler-bot.exe build/discord-butler-bot.exe --ignore-signed --definition resedit.definition.json --file-version %npm_package_version% --product-version %npm_package_version%",
+    "release": "npm run build && npm run package && npm run sign"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -43,6 +46,7 @@
     "@types/node": "^25.6.0",
     "@yao-pkg/pkg": "^6.21.0",
     "nodemon": "^3.1.14",
+    "resedit-cli": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }

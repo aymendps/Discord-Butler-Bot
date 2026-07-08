@@ -1,0 +1,17 @@
+{
+  "lang": 1033,
+  "icons": [
+    {
+      "id": 1,
+      "sourceFile": "butlerbot.ico"
+    }
+  ],
+  "version": {
+    "companyName": "Aymen Hammami",
+    "productName": "Discord Butler Bot",
+    "fileDescription": "Discord Butler Bot",
+    "legalCopyright": "Copyright (C) 2022-2026 Aymen Hammami",
+    "internalName": "discord-butler-bot",
+    "originalFilename": "discord-butler-bot.exe"
+  }
+}
