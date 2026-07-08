@@ -108,7 +108,7 @@ const updateYoutubeDl = (binaryPath: string) =>
     });
   });
 
-export async function ensureDenoInstalled(): Promise<void> {
+async function ensureDenoInstalled(): Promise<void> {
   const check = spawnSync("deno", ["--version"], {
     stdio: "ignore",
   });
