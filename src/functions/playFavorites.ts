@@ -5,6 +5,7 @@ import fs = require("fs");
 import path = require("path");
 import { executePlaySong } from "./playSong";
 import { AudioPlayer } from "@discordjs/voice";
+import { FavoriteListModel, UserModel } from "../database/models";
 
 export const executePlayFavorites = async (
   client: Client,
@@ -13,7 +14,7 @@ export const executePlayFavorites = async (
   memberTagArgs: string,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
-  sendReplyFunction: sendReplyFunction,
+  sendReplyFunction: sendReplyFunction
 ) => {
   try {
     let username = member.user.username;
@@ -22,7 +23,7 @@ export const executePlayFavorites = async (
 
     if (memberTagArgs) {
       const taggedMember = await member.guild.members.fetch(
-        memberTagArgs.slice(0, -1).substring(2),
+        memberTagArgs.slice(0, -1).substring(2)
       );
       if (taggedMember) {
         username = taggedMember.user.username;
@@ -31,11 +32,43 @@ export const executePlayFavorites = async (
       }
     }
 
-    const file = fs.readFileSync(
-      path.join(__dirname, `../../.data/${username}.data`),
-      "utf-8",
-    );
-    const faves: Song[] = JSON.parse(file);
+    const user = await UserModel.findOne({
+      username: username,
+    });
+
+    if (!user) {
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("No Favorites..?")
+            .setDescription(
+              "You don't have any songs that were added to your favorites!"
+            )
+            .setColor("DarkGold"),
+        ],
+      });
+      return;
+    }
+
+    const faveList = await FavoriteListModel.findOne({
+      user: user._id,
+    });
+
+    if (!faveList || faveList.songs.length === 0) {
+      await sendReplyFunction({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("No Favorites..?")
+            .setDescription(
+              "You don't have any songs that were added to your favorites!"
+            )
+            .setColor("DarkGold"),
+        ],
+      });
+      return;
+    }
+
+    const faves: Song[] = faveList.songs;
 
     if (!isNaN(Number(numberArgs))) {
       if (Number(numberArgs) < faves.length) {
@@ -50,7 +83,7 @@ export const executePlayFavorites = async (
                 "Added " +
                   songToAdd.title +
                   " to the queue: #" +
-                  songQueue.length(),
+                  songQueue.length()
               )
               .setThumbnail(songToAdd.thumbnail_url)
               .setColor("DarkGreen"),
@@ -63,7 +96,7 @@ export const executePlayFavorites = async (
             null,
             songQueue,
             audioPlayer,
-            sendReplyFunction,
+            sendReplyFunction
           );
         }
       } else {
@@ -72,7 +105,7 @@ export const executePlayFavorites = async (
             new EmbedBuilder()
               .setTitle("No Song That Matches..?")
               .setDescription(
-                "You don't have any song that matches that number. Use '/faves' to see them!",
+                "You don't have any song that matches that number. Use '/faves' to see them!"
               )
               .setColor("DarkGold"),
           ],
@@ -90,7 +123,7 @@ export const executePlayFavorites = async (
               "Added " +
                 nickname +
                 " favorite songs to the queue: #" +
-                songQueue.length(),
+                songQueue.length()
             )
             .setThumbnail(avatarURL)
             .setColor("DarkGreen"),
@@ -103,29 +136,18 @@ export const executePlayFavorites = async (
           null,
           songQueue,
           audioPlayer,
-          sendReplyFunction,
+          sendReplyFunction
         );
       }
     }
   } catch (error: any) {
-    if (error.code === "ENOENT") {
-      sendReplyFunction({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle("No Favorites..?")
-            .setDescription(
-              "You don't have any songs that were added to your favorites!",
-            )
-            .setColor("DarkGold"),
-        ],
-      });
-    } else if (error.code == "50035") {
+    if (error.code == "50035") {
       sendReplyFunction({
         embeds: [
           new EmbedBuilder()
             .setTitle("Invalid Format Or Member Tag!")
             .setDescription(
-              "Make sure that your request is written like so: <play-faves number @member",
+              "Make sure that your request is written like so: <play-faves number @member"
             )
             .setColor("DarkGold"),
         ],
