@@ -16,7 +16,7 @@
     "start": "ts-node src/main.ts",
     "dev": "nodemon src/main.ts",
     "build": "tsc --build --force",
-    "package": "pkg . --sea && node -e \"require('fs').copyFileSync('LICENSE','build/LICENSE')\"",
+    "package": "pkg . --sea && node -e \"require('fs').copyFileSync('LICENSE','build/LICENSE'); require('fs').cpSync('.data/dj/sfx','build/build_deps/dj/sfx',{recursive:true})\"",
     "sign": "npx resedit build/discord-butler-bot.exe build/discord-butler-bot.exe --ignore-signed --definition resedit.definition.json --file-version %npm_package_version% --product-version %npm_package_version%",
     "release": "npm run build && npm run package && npm run sign"
   },
