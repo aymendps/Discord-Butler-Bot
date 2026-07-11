@@ -29,7 +29,12 @@ export const executePlaySongFromFile = async (
       return;
     }
 
-    if (attachedFile.contentType !== "audio/mpeg") {
+    if (
+      attachedFile.contentType !== "audio/mpeg" &&
+      attachedFile.contentType !== "audio/mp3" &&
+      attachedFile.contentType !== "audio/mpeg3" &&
+      attachedFile.contentType !== "audio/x-mpeg-3"
+    ) {
       sendReplyFunction({
         embeds: [
           new EmbedBuilder()

@@ -55,7 +55,7 @@ export const playSong = async (
   errorReply: () => void,
   finishReply: () => void,
   ageRestrictionReply: (song: Song) => Promise<void>,
-  allowReply = true,
+  allowReply = true
 ) => {
   try {
     audioPlayer.removeAllListeners();
@@ -78,7 +78,7 @@ export const playSong = async (
           successReply,
           errorReply,
           finishReply,
-          ageRestrictionReply,
+          ageRestrictionReply
         );
       }
     });
@@ -89,7 +89,7 @@ export const playSong = async (
         currentSong.seek
       ) {
         console.log(
-          `Couldn't find nearest block with seek: ${currentSong.seek}. Trying with next seek!`,
+          `Couldn't find nearest block with seek: ${currentSong.seek}. Trying with next seek!`
         );
         currentSong.seek++;
         playSong(
@@ -102,7 +102,7 @@ export const playSong = async (
           errorReply,
           finishReply,
           ageRestrictionReply,
-          false,
+          false
         );
       } else {
         console.log(error);
@@ -135,7 +135,7 @@ export const playSong = async (
           "Spotify Changes: Updating duration from " +
             currentSong.duration +
             " to " +
-            alternativeSong.duration,
+            alternativeSong.duration
         );
         currentSong.duration = alternativeSong.duration;
       }
@@ -165,24 +165,32 @@ export const playSong = async (
 
       killCurrentStreamProcessPrematurely();
 
-      const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE)
+      const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
 
       const stream = currentSong.isYoutubeBased
-        ? youtubeDl.exec(currentSong.url, {
-            format: "bestaudio/best",
-            output: "-", // Send output to stdout
-            userAgent: "googlebot",
-            addHeader: ["referer:youtube.com"],
-            // @ts-ignore
-            // extractorArgs: "youtube:player_client=default,-android_sdkless",
-            noCheckCertificates: true,
-            noWarnings: true,
-            preferFreeFormats: true,
-          }, {shell: false})
-        : youtubeDl.exec(currentSong.url, {
-            format: "bestaudio/best",
-            output: "-",
-          }, {shell: false});
+        ? youtubeDl.exec(
+            currentSong.url,
+            {
+              format: "bestaudio/best",
+              output: "-", // Send output to stdout
+              userAgent: "googlebot",
+              addHeader: ["referer:youtube.com"],
+              // @ts-ignore
+              // extractorArgs: "youtube:player_client=default,-android_sdkless",
+              noCheckCertificates: true,
+              noWarnings: true,
+              preferFreeFormats: true,
+            },
+            { shell: false }
+          )
+        : youtubeDl.exec(
+            currentSong.url,
+            {
+              format: "bestaudio/best",
+              output: "-",
+            },
+            { shell: false }
+          );
 
       stream.catch((err) => {
         if (songQueue.justSeeked || songQueue.justSkipped) {
@@ -237,13 +245,13 @@ export const playSong = async (
         .noVideo()
         .format("mp3")
         .audioChannels(2)
-        .pipe(ffmpegStream)
-        .on("error", (error) => {})
-        .on("stderr", (stderr) => {});
+        .on("error", (err, stdout, stderr) => {})
+        .on("stderr", (stderr) => {})
+        .pipe(ffmpegStream);
     }
 
     const audioResource = createAudioResource(ffmpegStream, {
-      inputType: StreamType.OggOpus,
+      inputType: currentSong.isFile ? StreamType.Arbitrary : StreamType.OggOpus,
     });
     audioPlayer.play(audioResource);
 
@@ -263,7 +271,7 @@ export const playSong = async (
           successReply,
           errorReply,
           finishReply,
-          ageRestrictionReply,
+          ageRestrictionReply
         );
       }
     } else if (error.code === "ERR_SSL_WRONG_VERSION_NUMBER") {
@@ -277,7 +285,7 @@ export const playSong = async (
         successReply,
         errorReply,
         finishReply,
-        ageRestrictionReply,
+        ageRestrictionReply
       );
     } else {
       console.log(error);
@@ -293,7 +301,7 @@ export const executePlaySong = async (
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
   sendReplyFunction: sendReplyFunction,
-  useThisRawSongInstead: Song = null,
+  useThisRawSongInstead: Song = null
 ) => {
   try {
     if (songQueue.isEmpty() && !urlArg && !useThisRawSongInstead) {
@@ -302,7 +310,7 @@ export const executePlaySong = async (
           new EmbedBuilder()
             .setTitle("There is nothing to play!")
             .setDescription(
-              "Add a song to the queue first to start playing music",
+              "Add a song to the queue first to start playing music"
             )
             .setColor("DarkGold"),
         ],
@@ -318,7 +326,7 @@ export const executePlaySong = async (
           new EmbedBuilder()
             .setTitle("I can't find you, " + member.nickname)
             .setDescription(
-              "You need to be in a voice channel to start playing music",
+              "You need to be in a voice channel to start playing music"
             )
             .setColor("DarkRed"),
         ],
@@ -334,7 +342,7 @@ export const executePlaySong = async (
           new EmbedBuilder()
             .setTitle("Let me in!")
             .setDescription(
-              "I don't have the permissions to join and speak in your voice channel",
+              "I don't have the permissions to join and speak in your voice channel"
             )
             .setColor("DarkRed"),
         ],
@@ -357,7 +365,7 @@ export const executePlaySong = async (
         null,
         songQueue,
         sendReplyFunction,
-        useThisRawSongInstead,
+        useThisRawSongInstead
       );
     }
 
@@ -377,7 +385,7 @@ export const executePlaySong = async (
                 .setDescription(
                   "There are " +
                     remaining +
-                    " other songs remaining in the queue",
+                    " other songs remaining in the queue"
                 )
                 .setThumbnail(song.thumbnail_url)
                 .setColor("DarkGreen"),
@@ -397,7 +405,7 @@ export const executePlaySong = async (
                       new ButtonBuilder()
                         .setCustomId("add-fave")
                         .setLabel("Add to Faves")
-                        .setStyle(ButtonStyle.Primary),
+                        .setStyle(ButtonStyle.Primary)
                     ),
                     new ActionRowBuilder<ButtonBuilder>().addComponents(
                       new ButtonBuilder()
@@ -415,7 +423,7 @@ export const executePlaySong = async (
                       new ButtonBuilder()
                         .setCustomId("seek-ford-30")
                         .setLabel("30s >")
-                        .setStyle(ButtonStyle.Success),
+                        .setStyle(ButtonStyle.Success)
                     ),
                   ]
                 : [
@@ -427,7 +435,7 @@ export const executePlaySong = async (
                       new ButtonBuilder()
                         .setCustomId("skip")
                         .setLabel("Skip")
-                        .setStyle(ButtonStyle.Danger),
+                        .setStyle(ButtonStyle.Danger)
                     ),
                   ],
           });
@@ -452,7 +460,7 @@ export const executePlaySong = async (
                 confirmation.member as GuildMember,
                 songQueue,
                 audioPlayer,
-                sendReplyFunction,
+                sendReplyFunction
               );
               confirmation.update({
                 embeds: [
@@ -462,7 +470,7 @@ export const executePlaySong = async (
                     .setDescription(
                       "There are " +
                         remaining +
-                        " other songs remaining in the queue",
+                        " other songs remaining in the queue"
                     )
                     .setThumbnail(song.thumbnail_url)
                     .setColor("DarkGreen"),
@@ -477,7 +485,7 @@ export const executePlaySong = async (
                       .setCustomId("skipped")
                       .setLabel("Skipped!")
                       .setStyle(ButtonStyle.Danger)
-                      .setDisabled(true),
+                      .setDisabled(true)
                   ),
                 ],
               });
@@ -490,7 +498,7 @@ export const executePlaySong = async (
                     .setDescription(
                       "There are " +
                         remaining +
-                        " other songs remaining in the queue",
+                        " other songs remaining in the queue"
                     )
                     .setThumbnail(song.thumbnail_url)
                     .setColor("DarkGreen"),
@@ -508,7 +516,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("add-fave")
                       .setLabel("Add to Faves")
-                      .setStyle(ButtonStyle.Primary),
+                      .setStyle(ButtonStyle.Primary)
                   ),
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
@@ -526,7 +534,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("seek-ford-30")
                       .setLabel("30s >")
-                      .setStyle(ButtonStyle.Success),
+                      .setStyle(ButtonStyle.Success)
                   ),
                 ],
               });
@@ -534,7 +542,7 @@ export const executePlaySong = async (
                 client,
                 confirmation.member as GuildMember,
                 song,
-                sendReplyFunction,
+                sendReplyFunction
               );
             } else if (confirmation.customId.includes("seek-back")) {
               endTime = new Date();
@@ -551,7 +559,7 @@ export const executePlaySong = async (
                 songCurrentTime,
                 songQueue,
                 audioPlayer,
-                sendReplyFunction,
+                sendReplyFunction
               );
               startTime = new Date();
               confirmation.update({
@@ -562,7 +570,7 @@ export const executePlaySong = async (
                     .setDescription(
                       "There are " +
                         remaining +
-                        " other songs remaining in the queue",
+                        " other songs remaining in the queue"
                     )
                     .setThumbnail(song.thumbnail_url)
                     .setColor("DarkGreen"),
@@ -580,7 +588,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("add-fave")
                       .setLabel("Add to Faves")
-                      .setStyle(ButtonStyle.Primary),
+                      .setStyle(ButtonStyle.Primary)
                   ),
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
@@ -598,7 +606,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("seek-ford-30")
                       .setLabel("30s >")
-                      .setStyle(ButtonStyle.Success),
+                      .setStyle(ButtonStyle.Success)
                   ),
                 ],
               });
@@ -617,7 +625,7 @@ export const executePlaySong = async (
                 songCurrentTime,
                 songQueue,
                 audioPlayer,
-                sendReplyFunction,
+                sendReplyFunction
               );
               startTime = new Date();
               confirmation.update({
@@ -628,7 +636,7 @@ export const executePlaySong = async (
                     .setDescription(
                       "There are " +
                         remaining +
-                        " other songs remaining in the queue",
+                        " other songs remaining in the queue"
                     )
                     .setThumbnail(song.thumbnail_url)
                     .setColor("DarkGreen"),
@@ -646,7 +654,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("add-fave")
                       .setLabel("Add to Faves")
-                      .setStyle(ButtonStyle.Primary),
+                      .setStyle(ButtonStyle.Primary)
                   ),
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
@@ -664,7 +672,7 @@ export const executePlaySong = async (
                     new ButtonBuilder()
                       .setCustomId("seek-ford-30")
                       .setLabel("30s >")
-                      .setStyle(ButtonStyle.Success),
+                      .setStyle(ButtonStyle.Success)
                   ),
                 ],
               });
@@ -679,7 +687,7 @@ export const executePlaySong = async (
                   .setDescription(
                     "There are " +
                       remaining +
-                      " other songs remaining in the queue",
+                      " other songs remaining in the queue"
                   )
                   .setThumbnail(song.thumbnail_url)
                   .setColor("DarkGreen"),
@@ -694,7 +702,7 @@ export const executePlaySong = async (
                     .setCustomId("finished")
                     .setLabel("Finished!")
                     .setStyle(ButtonStyle.Success)
-                    .setDisabled(true),
+                    .setDisabled(true)
                 ),
               ],
             });
@@ -706,7 +714,7 @@ export const executePlaySong = async (
               new EmbedBuilder()
                 .setTitle("Something went wrong")
                 .setDescription(
-                  "Could not play the requested song.. Moving on to the next song in queue",
+                  "Could not play the requested song.. Moving on to the next song in queue"
                 )
                 .setColor("DarkRed"),
             ],
@@ -718,7 +726,7 @@ export const executePlaySong = async (
               new EmbedBuilder()
                 .setTitle("I finished my job")
                 .setDescription(
-                  "There are no songs remaining in the queue. Feel free to request me again with new songs",
+                  "There are no songs remaining in the queue. Feel free to request me again with new songs"
                 )
                 .setColor("DarkGreen"),
             ],
@@ -730,12 +738,12 @@ export const executePlaySong = async (
               new EmbedBuilder()
                 .setTitle("Oh no! Age Restricted Song!")
                 .setDescription(
-                  `The song ${song.title} is age restricted. Skipping to the next song...`,
+                  `The song ${song.title} is age restricted. Skipping to the next song...`
                 )
                 .setColor("DarkGold"),
             ],
           });
-        },
+        }
       );
     }
   } catch (error: any) {
@@ -745,7 +753,7 @@ export const executePlaySong = async (
           new EmbedBuilder()
             .setTitle("Seeking Beyond Limit!")
             .setDescription(
-              "Make sure your timestamp does not exceed the length of the song!",
+              "Make sure your timestamp does not exceed the length of the song!"
             )
             .setColor("DarkRed"),
         ],
