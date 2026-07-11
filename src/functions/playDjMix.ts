@@ -1,14 +1,24 @@
 import fs from "fs";
 import path from "path";
 import ffmpeg from "fluent-ffmpeg";
-import * as dotenv from "dotenv";
+import {
+  Message,
+  EmbedBuilder,
+  MessageCreateOptions,
+  InteractionReplyOptions,
+  Client,
+} from "discord.js";
+import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 
-const basePath = (process as any).pkg
-  ? path.join(__dirname, "../.env.package")
-  : ".env.dev";
-dotenv.config({ path: basePath, quiet: true });
+const TEMP_DIR = path.join(
+  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+  process.env.DJ_TEMP_DIR
+);
+const SFX_DIR = path.join(
+  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+  process.env.DJ_SFX_DIR
+);
 
-const TEMP_DIR = path.join(__dirname, "/../.data/dj/temp");
 const OUTPUT = path.join(TEMP_DIR, "dj_mix.mp3");
 const ANALYSIS_SR = 22050;
 
@@ -24,32 +34,30 @@ const FADE_MIN_TRIM_SEC = 1.5;
 
 const RANDOM_CUT_MIN_RATIO = 0.4;
 const RANDOM_CUT_MAX_RATIO = 0.6;
-const RANDOM_CUT_MIN_ABS_SEC = 30;
+const RANDOM_CUT_MIN_ABS_SEC = 120;
 
 const ONSET_SEARCH_WINDOW_SEC = 1.0;
 const REPEAT_VOLUME_START = 1.0;
 const REPEAT_VOLUME_END = 0.2;
 
-const SFX_DIR = path.join(__dirname, "/../.data/dj/sfx");
+__dirname + "/../.data/yt-dlp.json";
+
 const OUTPUT_WITH_SFX = path.join(TEMP_DIR, "dj_mix_with_sfx.mp3");
-const SFX_INTERVAL = 30; // seconds
-const SFX_INTERVAL_DELTA = 3; // seconds, random offset for each SFX placement
+const SFX_START_TIME = 5;
+const SFX_INTERVAL = 40;
+const SFX_INTERVAL_DELTA = 10;
 const SFX_MIN_VOLUME = 0.5;
 const SFX_MAX_VOLUME = 0.8;
-const SFX_MAX_REPEAT_HISTORY_LENGTH = 4; // number of recent SFX to avoid repeating
+const SFX_MAX_REPEAT_HISTORY_LENGTH = 4;
 
-const VOICE_DUCK_VOLUME = 0.25; // how low the main mix ducks to under a voice line
+const VOICE_DUCK_VOLUME = 0.25;
 const VOICE_DUCK_ATTACK_SEC = 0.25; // fade-down time as the voice line starts
 const VOICE_DUCK_RELEASE_SEC = 0.4; // fade-back-up time as the voice line ends
 
-// ---- transition-voice tunables ----
-// Voice SFX whose filename contains "transition" (e.g. "voice_transition1.mp3")
-// are reserved exclusively for playing right before a track's repeat/stutter
-// phase begins, instead of being scattered randomly like other voice SFX.
 const TRANSITION_DUCK_VOLUME = 0.3;
 const TRANSITION_DUCK_ATTACK_SEC = 0.2;
 const TRANSITION_DUCK_RELEASE_SEC = 0.35;
-const TRANSITION_SFX_MAX_REPEAT_HISTORY_LENGTH = 2; // avoid repeating the same transition line back-to-back
+const TRANSITION_SFX_MAX_REPEAT_HISTORY_LENGTH = 2;
 const TRANSITION_VOICE_GUARD_SEC = 1.0; // padding kept clear around a baked-in transition voice window
 
 async function getDuration(file: string): Promise<number> {
@@ -100,6 +108,12 @@ function isTransitionSfx(file: string): boolean {
   );
 }
 
+function isStartSfx(file: string): boolean {
+  return (
+    isVoiceSfx(file) && path.basename(file).toLowerCase().includes("start")
+  );
+}
+
 function getSfxFiles(): string[] {
   if (!fs.existsSync(SFX_DIR)) return [];
 
@@ -138,18 +152,6 @@ async function loadTransitionSfxMeta(
   return metas;
 }
 
-function randomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function randomSfx(files, recent) {
-  const candidates = files.filter((f) => !recent.includes(f));
-
-  const pool = candidates.length ? candidates : files;
-
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
 function windowsOverlap(
   aStart: number,
   aEnd: number,
@@ -169,9 +171,13 @@ function pickSfxForSlot(
   recent: string[],
   meta: Map<string, SfxMeta>,
   timestamp: number,
-  reservedVoiceWindows: TransitionVoiceWindow[]
+  reservedVoiceWindows: TransitionVoiceWindow[],
+  isStartSlot: boolean = false
 ): string {
-  const candidates = files.filter((f) => !recent.includes(f));
+  let candidates = files.filter((f) => !recent.includes(f));
+  if (isStartSlot) {
+    candidates = candidates.filter((f) => isStartSfx(f));
+  }
   const pool = candidates.length ? candidates : files;
 
   const allowed = pool.filter((f) => {
@@ -268,7 +274,7 @@ async function addRandomSfx(
     let recentSfx = [];
 
     for (
-      let timestamp = intervalSeconds;
+      let timestamp = Math.max(SFX_START_TIME, 0);
       timestamp < duration;
       timestamp +=
         intervalSeconds +
@@ -281,8 +287,10 @@ async function addRandomSfx(
         recentSfx,
         sfxMeta,
         timestamp,
-        reservedVoiceWindows
+        reservedVoiceWindows,
+        timestamp == SFX_START_TIME
       );
+
       const meta = sfxMeta.get(sfx);
 
       recentSfx.push(sfx);
@@ -872,19 +880,45 @@ async function createDJMix(
   });
 }
 
-async function main() {
-  if (!fs.existsSync(TEMP_DIR)) throw new Error("temp folder does not exist");
-  const files = getAudioFiles();
-  console.log("Found songs:", files);
-  const tracks = await loadTracks(files);
-  const transitionVoiceWindows = await createDJMix(tracks, OUTPUT);
-  await addRandomSfx(
-    OUTPUT,
-    OUTPUT_WITH_SFX,
-    SFX_INTERVAL, // every 10 seconds
-    transitionVoiceWindows
-  );
-  console.log("Done!");
-}
+// region discord related
 
-main().catch(console.error);
+export const executePlayDjMix = async (
+  client: Client,
+  sendReplyFunction: sendReplyFunction
+) => {
+  try {
+    if (!fs.existsSync(TEMP_DIR)) throw new Error("temp folder does not exist");
+    const files = getAudioFiles();
+    console.log("Found songs:", files);
+    const tracks = await loadTracks(files);
+    const transitionVoiceWindows = await createDJMix(tracks, OUTPUT);
+    await addRandomSfx(
+      OUTPUT,
+      OUTPUT_WITH_SFX,
+      SFX_INTERVAL, // every 10 seconds
+      transitionVoiceWindows
+    );
+    await sendReplyFunction({
+      embeds: [
+        new EmbedBuilder()
+          .setDescription(
+            "Play DJ Mix Test. Check console for output. Successs"
+          )
+          .setImage(client.user.avatarURL())
+          .setColor("DarkGreen"),
+      ],
+    });
+  } catch (error) {
+    console.log(error);
+    await sendReplyFunction({
+      embeds: [
+        new EmbedBuilder()
+          .setDescription("Play DJ Mix Test. Check console for output. Failed")
+          .setImage(client.user.avatarURL())
+          .setColor("DarkRed"),
+      ],
+    });
+  }
+};
+
+// endregion

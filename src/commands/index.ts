@@ -28,6 +28,7 @@ import { PlaySongFromFileCommand } from "./playSongFromFile";
 import { AIChatJoinConversationCommand } from "./AIChatJoinConversation";
 import { AIChatLeaveConversationCommand } from "./AIChatLeaveConversation";
 import { AutoPlayNextSongCommand } from "./autoPlayNextSong";
+import { PlayDjMixCommand } from "./playDjMix";
 
 export const sendInteractionReply = async (
   interaction: ChatInputCommandInteraction,
@@ -65,4 +66,5 @@ export const Commands: Command[] = [
   AIChatJoinConversationCommand,
   AIChatLeaveConversationCommand,
   AutoPlayNextSongCommand,
+  PlayDjMixCommand,
 ];
