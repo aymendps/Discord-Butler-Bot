@@ -30,6 +30,7 @@ import { suggestSong } from "./suggestSong";
 import { addSongIfShouldAutoPlayNext } from "./autoPlayNextSong";
 import { getInnertubeAgent } from "../main";
 import { YTNodes } from "youtubei.js";
+import path from "path";
 
 let currentStreamProcess: SubprocessPromise = null;
 
@@ -180,6 +181,12 @@ export const playSong = async (
               noCheckCertificates: true,
               noWarnings: true,
               preferFreeFormats: true,
+              cookies: path.resolve(
+                (process as any).pkg
+                  ? path.dirname(process.execPath)
+                  : __dirname,
+                process.env.YOUTUBE_DL_COOKIE
+              ),
             },
             { shell: false }
           )

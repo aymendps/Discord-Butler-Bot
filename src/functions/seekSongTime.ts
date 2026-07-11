@@ -12,6 +12,7 @@ import {
   killCurrentStreamProcessPrematurely,
   setCurrentStreamProcess,
 } from "./playSong";
+import path from "path";
 
 const TIMESTAMP_REGEX = /(?:([0-5][0-9]):)?([0-5][0-9]):([0-5][0-9])/;
 
@@ -37,7 +38,7 @@ export const executeSeekSongTime = async (
   timestamp: string,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
-  sendReplyFunction: sendReplyFunction,
+  sendReplyFunction: sendReplyFunction
 ) => {
   try {
     const voiceChannel = member.voice.channel;
@@ -48,7 +49,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("I can't find you, " + member.nickname)
             .setDescription(
-              "You need to be in a voice channel to start playing music",
+              "You need to be in a voice channel to start playing music"
             )
             .setColor("DarkRed"),
         ],
@@ -62,7 +63,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("No song is currently playing!")
             .setDescription(
-              "You need to play a song first before seeking a timestamp",
+              "You need to play a song first before seeking a timestamp"
             )
             .setColor("DarkRed"),
         ],
@@ -76,7 +77,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("Invalid Timestamp :(")
             .setDescription(
-              "Make sure the timestamp is one of these formats: hh:mm:ss OR mm:ss",
+              "Make sure the timestamp is one of these formats: hh:mm:ss OR mm:ss"
             )
             .setColor("DarkGold"),
         ],
@@ -92,7 +93,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("Cannot seek file or live stream!")
             .setDescription(
-              "You cannot seek a file or a live stream. Please play a normal song from a URL to seek a timestamp!",
+              "You cannot seek a file or a live stream. Please play a normal song from a URL to seek a timestamp!"
             )
             .setColor("DarkGold"),
         ],
@@ -119,17 +120,25 @@ export const executeSeekSongTime = async (
 
     const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
 
-    const stream = youtubeDl.exec(current.url, {
-      format: "bestaudio/best",
-      output: "-", // Send output to stdout
-      userAgent: "googlebot",
-      addHeader: ["referer:youtube.com"],
-      // @ts-ignore
-      // extractorArgs: "youtube:player_client=default,-android_sdkless",
-      noCheckCertificates: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-    }, {shell: false});
+    const stream = youtubeDl.exec(
+      current.url,
+      {
+        format: "bestaudio/best",
+        output: "-", // Send output to stdout
+        userAgent: "googlebot",
+        addHeader: ["referer:youtube.com"],
+        // @ts-ignore
+        // extractorArgs: "youtube:player_client=default,-android_sdkless",
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        cookies: path.resolve(
+          (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+          process.env.YOUTUBE_DL_COOKIE
+        ),
+      },
+      { shell: false }
+    );
 
     stream.catch((err) => {});
 
@@ -175,7 +184,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("Seeking Beyond Limit!")
             .setDescription(
-              "Make sure your timestamp does not exceed the length of the song!",
+              "Make sure your timestamp does not exceed the length of the song!"
             )
             .setColor("DarkRed"),
         ],
@@ -187,7 +196,7 @@ export const executeSeekSongTime = async (
         timestamp,
         songQueue,
         audioPlayer,
-        sendReplyFunction,
+        sendReplyFunction
       );
     } else {
       console.log(error);
@@ -196,7 +205,7 @@ export const executeSeekSongTime = async (
           new EmbedBuilder()
             .setTitle("Invalid Timestamp!")
             .setDescription(
-              "Make sure the timestamp is one of these formats: HH:MM:SS OR MM:SS",
+              "Make sure the timestamp is one of these formats: HH:MM:SS OR MM:SS"
             )
             .setColor("DarkRed"),
         ],
@@ -209,7 +218,7 @@ export const executeSeekSongTimeSecondsRaw = async (
   seconds: number,
   songQueue: SongQueue,
   audioPlayer: AudioPlayer,
-  sendReplyFunction: sendReplyFunction,
+  sendReplyFunction: sendReplyFunction
 ) => {
   try {
     if (!songQueue.getCurrent()) {
@@ -218,7 +227,7 @@ export const executeSeekSongTimeSecondsRaw = async (
           new EmbedBuilder()
             .setTitle("No song is currently playing!")
             .setDescription(
-              "You need to play a song first before seeking a timestamp",
+              "You need to play a song first before seeking a timestamp"
             )
             .setColor("DarkRed"),
         ],
@@ -234,7 +243,7 @@ export const executeSeekSongTimeSecondsRaw = async (
           new EmbedBuilder()
             .setTitle("Cannot seek file or live stream!")
             .setDescription(
-              "You cannot seek a file or a live stream. Please play a normal song from a URL to seek a timestamp!",
+              "You cannot seek a file or a live stream. Please play a normal song from a URL to seek a timestamp!"
             )
             .setColor("DarkGold"),
         ],
@@ -257,17 +266,25 @@ export const executeSeekSongTimeSecondsRaw = async (
 
     const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
 
-    const stream = youtubeDl.exec(current.url, {
-      format: "bestaudio/best",
-      output: "-", // Send output to stdout
-      userAgent: "googlebot",
-      addHeader: ["referer:youtube.com"],
-      // @ts-ignore
-      // extractorArgs: "youtube:player_client=default,-android_sdkless",
-      noCheckCertificates: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-    } , {shell: false});
+    const stream = youtubeDl.exec(
+      current.url,
+      {
+        format: "bestaudio/best",
+        output: "-", // Send output to stdout
+        userAgent: "googlebot",
+        addHeader: ["referer:youtube.com"],
+        // @ts-ignore
+        // extractorArgs: "youtube:player_client=default,-android_sdkless",
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        cookies: path.resolve(
+          (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+          process.env.YOUTUBE_DL_COOKIE
+        ),
+      },
+      { shell: false }
+    );
 
     stream.catch((err) => {});
 
@@ -302,7 +319,7 @@ export const executeSeekSongTimeSecondsRaw = async (
         seconds,
         songQueue,
         audioPlayer,
-        sendReplyFunction,
+        sendReplyFunction
       );
     } else {
       console.log(error);
