@@ -1,7 +1,6 @@
-import { model, Schema } from "mongoose";
-import { Song } from "../../interfaces/song";
+import { Schema } from "mongoose";
 
-export const SongSchema = new Schema<Song>({
+export const SongSchema = new Schema({
   title: { type: String, required: true },
   url: { type: String, required: true },
   thumbnail_url: { type: String, required: true },
