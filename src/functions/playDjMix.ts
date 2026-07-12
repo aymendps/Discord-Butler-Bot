@@ -13,22 +13,15 @@ import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import { DjMixMode, Song, SongQueue } from "../interfaces/song";
 import { executePlaySong } from "./playSong";
 import { AudioPlayer } from "@discordjs/voice";
+import { DJ_TEMP_DIR, DJ_ASSETS_DIR, DJ_SFX_DIR } from "../config";
+import { create as createYtDlExec } from "youtube-dl-exec";
+import { getInnertubeAgent } from "../main";
+import { YTNodes } from "youtubei.js";
+import { TinyspawnPromise } from "tinyspawn";
+import { exec } from "child_process";
 
-const TEMP_DIR = path.join(
-  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
-  process.env.DJ_TEMP_DIR
-);
-const SFX_DIR = path.join(
-  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
-  process.env.DJ_SFX_DIR
-);
-const ASSETS_DIR = path.join(
-  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
-  process.env.DJ_ASSETS_DIR
-);
-
-const OUTPUT = path.join(TEMP_DIR, "dj_mix.mp3");
-const OUTPUT_WITH_SFX = path.join(TEMP_DIR, "dj_mix_with_sfx.mp3");
+const DJ_OUTPUT = path.join(DJ_TEMP_DIR, "dj_mix.mp3");
+const DJ_OUTPUT_WITH_SFX = path.join(DJ_TEMP_DIR, "dj_mix_with_sfx.mp3");
 
 const ANALYSIS_SR = 22050;
 
@@ -51,9 +44,9 @@ const REPEAT_VOLUME_START = 1.0;
 const REPEAT_VOLUME_END = 0.2;
 
 const SFX_START_TIME = 5;
-const SFX_INTERVAL = 45;
+const SFX_INTERVAL = 55;
+const SFX_INTERVAL_DELTA = 5;
 const SFX_END_TIME_DELTA = 20;
-const SFX_INTERVAL_DELTA = 10;
 const SFX_MIN_VOLUME = 0.5;
 const SFX_MAX_VOLUME = 0.8;
 const SFX_MAX_REPEAT_HISTORY_LENGTH = 4;
@@ -67,6 +60,11 @@ const TRANSITION_DUCK_ATTACK_SEC = 0.2;
 const TRANSITION_DUCK_RELEASE_SEC = 0.35;
 const TRANSITION_SFX_MAX_REPEAT_HISTORY_LENGTH = 2;
 const TRANSITION_VOICE_GUARD_SEC = 1.0; // padding kept clear around a baked-in transition voice window
+
+const MAX_PLAYLISTS_TO_USE = 3;
+const MAX_PLAYLIST_SONGS = 5;
+const MIN_VIDEO_DURATION_SEC = 60;
+const MAX_VIDEO_DURATION_SEC = 600;
 
 export async function getAudioFileDuration(file: string): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -83,9 +81,10 @@ export async function getAudioFileDuration(file: string): Promise<number> {
 // file and pointing ffmpeg at it with -filter_complex_script sidesteps the
 // limit entirely, since only a short file path goes on the command line.
 function writeFilterScript(filters: string[], name: string): string {
-  if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+  if (!fs.existsSync(DJ_TEMP_DIR))
+    fs.mkdirSync(DJ_TEMP_DIR, { recursive: true });
   const scriptPath = path.join(
-    TEMP_DIR,
+    DJ_TEMP_DIR,
     `${name}_${Date.now()}_${Math.floor(Math.random() * 1e6)}.txt`
   );
   fs.writeFileSync(scriptPath, filters.join(";\n"), "utf-8");
@@ -123,12 +122,12 @@ function isStartSfx(file: string): boolean {
 }
 
 function getSfxFiles(): string[] {
-  if (!fs.existsSync(SFX_DIR)) return [];
+  if (!fs.existsSync(DJ_SFX_DIR)) return [];
 
   return fs
-    .readdirSync(SFX_DIR)
+    .readdirSync(DJ_SFX_DIR)
     .filter((f) => f.endsWith(".mp3"))
-    .map((f) => path.join(SFX_DIR, f));
+    .map((f) => path.join(DJ_SFX_DIR, f));
 }
 
 async function loadSfxMeta(files: string[]): Promise<Map<string, SfxMeta>> {
@@ -394,12 +393,12 @@ interface Track {
 
 function getAudioFiles(): string[] {
   return fs
-    .readdirSync(TEMP_DIR)
+    .readdirSync(DJ_TEMP_DIR)
     .filter(
       (f) =>
         f.endsWith(".mp3") && f !== "dj_mix.mp3" && f !== "dj_mix_with_sfx.mp3"
     )
-    .map((f) => path.join(TEMP_DIR, f));
+    .map((f) => path.join(DJ_TEMP_DIR, f));
 }
 
 function extractPCM(
@@ -916,11 +915,11 @@ async function createDJMix(
 }
 
 export function getDJMixPlaceholderSongPath(): string {
-  return path.join(ASSETS_DIR, "djb_placeholder.mp3");
+  return path.join(DJ_ASSETS_DIR, "djb_placeholder.mp3");
 }
 
 function getDJMixIntroSongPath(): string {
-  return path.join(ASSETS_DIR, "djb_intro.mp3");
+  return path.join(DJ_ASSETS_DIR, "djb_intro.mp3");
 }
 
 async function prependIntroToMix(mixPath: string): Promise<void> {
@@ -953,40 +952,277 @@ async function prependIntroToMix(mixPath: string): Promise<void> {
 }
 
 function getDJMixOutroSongPath(): string {
-  return path.join(ASSETS_DIR, "djb_outro.mp3");
+  return path.join(DJ_ASSETS_DIR, "djb_outro.mp3");
 }
 
 export async function generateDJMix(djMixMode: DjMixMode) {
   try {
-    if (!fs.existsSync(TEMP_DIR)) throw new Error("temp folder does not exist");
+    if (!fs.existsSync(DJ_TEMP_DIR))
+      throw new Error("temp folder does not exist");
 
     const files = getAudioFiles();
     const tracks = await loadTracks(files);
 
-    const transitionVoiceWindows = await createDJMix(tracks, OUTPUT);
+    const transitionVoiceWindows = await createDJMix(tracks, DJ_OUTPUT);
 
     if (djMixMode === "SFX") {
       await addRandomSfx(
-        OUTPUT,
-        OUTPUT_WITH_SFX,
+        DJ_OUTPUT,
+        DJ_OUTPUT_WITH_SFX,
         SFX_INTERVAL, // every 10 seconds
         transitionVoiceWindows
       );
     }
 
-    const outputPath = djMixMode === "SFX" ? OUTPUT_WITH_SFX : OUTPUT;
+    const outputPath = djMixMode === "SFX" ? DJ_OUTPUT_WITH_SFX : DJ_OUTPUT;
     await prependIntroToMix(outputPath);
-    return {
-      status: true,
-      outputPath,
-    };
+    return true;
   } catch (error) {
     console.log(error);
-    return { status: false, outputPath: null };
+    return false;
   }
 }
 
 // region discord related
+
+function clearPreviousTracks() {
+  if (!fs.existsSync(DJ_TEMP_DIR)) {
+    fs.mkdirSync(DJ_TEMP_DIR, { recursive: true });
+    return;
+  }
+  const stale = fs
+    .readdirSync(DJ_TEMP_DIR)
+    .filter(
+      (f) =>
+        f.endsWith(".mp3") && f !== "dj_mix.mp3" && f !== "dj_mix_with_sfx.mp3"
+    );
+  for (const f of stale) {
+    fs.unlinkSync(path.join(DJ_TEMP_DIR, f));
+  }
+}
+
+function shuffle<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+
+  return array;
+}
+
+function parseDurationToSeconds(
+  text: string | undefined | null
+): number | null {
+  if (!text) return null;
+  const trimmed = text.trim();
+  if (!/^\d{1,2}(:\d{2}){1,2}$/.test(trimmed)) return null;
+
+  const parts = trimmed.split(":").map((p) => parseInt(p, 10));
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return h * 3600 + m * 60 + s;
+  } else if (parts.length === 2) {
+    const [m, s] = parts;
+    return m * 60 + s;
+  }
+  return null;
+}
+
+function extractDurationText(view: any): string | undefined {
+  const overlays = view?.content_image?.overlays ?? [];
+
+  for (const overlay of overlays) {
+    const badges = overlay?.badges ?? [];
+    for (const badge of badges) {
+      const text = badge?.text;
+      if (
+        typeof text === "string" &&
+        /^\d{1,2}(:\d{2}){1,2}$/.test(text.trim())
+      ) {
+        return text.trim();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+const getSongsForMood = async (mood: string): Promise<string[]> => {
+  try {
+    const ytAgent = await getInnertubeAgent();
+    const search = await ytAgent.search(mood + "music", { type: "playlist" });
+
+    const playlistIds = search.playlists
+      .filter((result) => result.is(YTNodes.LockupView))
+      .map((view) => view.content_id)
+      .splice(0, MAX_PLAYLISTS_TO_USE);
+
+    if (playlistIds.length === 0) {
+      console.log("No playlists found for mood: " + mood);
+      return [];
+    }
+
+    const mergedVideos = new Set<YTNodes.LockupView>();
+    for (const playlistId of playlistIds) {
+      const playlist = await ytAgent.getPlaylist(playlistId);
+      for (const video of playlist.videos) {
+        if (video.is(YTNodes.LockupView)) mergedVideos.add(video);
+      }
+    }
+
+    // filter out any video which duration is less than MIN_VIDEO_DURATION_SEC or greater than MAX_VIDEO_DURATION_SEC
+    const videos = Array.from(mergedVideos).filter((video) => {
+      if (!video.is(YTNodes.LockupView)) return false;
+      const view = video.as(YTNodes.LockupView);
+
+      const durationText = extractDurationText(view);
+      const seconds = parseDurationToSeconds(durationText);
+
+      if (seconds === null) return false; // couldn't determine duration → exclude
+      return (
+        seconds >= MIN_VIDEO_DURATION_SEC && seconds <= MAX_VIDEO_DURATION_SEC
+      );
+    });
+
+    // const shuffledVideos = shuffle(videos).splice(0, MAX_PLAYLIST_SONGS);
+    const shuffledVideos = shuffle(videos).slice(0, MAX_PLAYLIST_SONGS);
+
+    let songUrls: string[] = [];
+
+    for (const video of shuffledVideos) {
+      if (video.type == "LockupView") {
+        const view = video.as(YTNodes.LockupView);
+
+        songUrls.push(`https://www.youtube.com/watch?v=${view.content_id}`);
+      }
+    }
+
+    return songUrls;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+};
+
+let currentDownloadProcess: TinyspawnPromise = null;
+
+function killCurrentDownloadProcess() {
+  if (currentDownloadProcess) {
+    exec(`taskkill /pid ${currentDownloadProcess.pid} /T /F`, () => {});
+    currentDownloadProcess = null;
+  }
+}
+
+// Bumped every time a new DJ mix generation starts, and on explicit
+// cancellation. Each in-flight downloadSongsForDJMix run captures its own
+// token and re-checks it after every await — a mismatch means a newer run
+// (or a skip) superseded it, so it should stop touching shared state.
+let djMixGenerationToken = 0;
+
+export function cancelDJMixGeneration() {
+  djMixGenerationToken++;
+  killCurrentDownloadProcess();
+}
+
+async function downloadSingleTrack(
+  url: string,
+  destPath: string,
+  token: number
+): Promise<boolean> {
+  try {
+    const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
+    console.log(`Downloading track: ${url} → ${destPath}`);
+
+    const proc = youtubeDl.exec(
+      url,
+      {
+        format: "bestaudio/best",
+        extractAudio: true,
+        audioFormat: "mp3",
+        audioQuality: 0, // best
+        ffmpegLocation: process.env.FFMPEG_PATH,
+        output: destPath,
+        userAgent: "googlebot",
+        addHeader: ["referer:youtube.com"],
+        noCheckCertificates: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        cookies: path.join(
+          (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+          process.env.YOUTUBE_DL_COOKIE
+        ),
+      },
+      { shell: false }
+    );
+
+    proc.catch((err) => {
+      // console.log(`playDjMix.ts, single track:`, err);
+    });
+
+    currentDownloadProcess = proc;
+    await proc;
+    currentDownloadProcess = null;
+
+    if (token !== djMixGenerationToken) return false;
+
+    return fs.existsSync(destPath);
+  } catch (error) {
+    currentDownloadProcess = null;
+    if (token === djMixGenerationToken) {
+      console.log(`Failed to download track: ${url}`, error);
+    } else {
+      // console.log("Some other error:", error);
+    }
+    return false;
+  }
+}
+
+export const downloadSongsForDJMix = async (mood: string) => {
+  const token = ++djMixGenerationToken;
+
+  try {
+    clearPreviousTracks();
+
+    const songUrls = await getSongsForMood(mood);
+    if (token !== djMixGenerationToken) return false;
+
+    if (!songUrls || songUrls.length < 3) {
+      console.log("Not enough songs found for mood: " + mood);
+      return false;
+    }
+
+    let successCount = 0;
+
+    console.log(
+      `Starting download of ${songUrls.length} tracks for mood: ${mood}`
+    );
+    console.log(songUrls);
+
+    // Sequential on purpose
+    for (let i = 0; i < songUrls.length; i++) {
+      if (token !== djMixGenerationToken) return false;
+      const destPath = path.join(DJ_TEMP_DIR, `track_${i}.mp3`);
+      const ok = await downloadSingleTrack(songUrls[i], destPath, token);
+      if (ok) successCount++;
+    }
+
+    if (token !== djMixGenerationToken) return false;
+
+    // createDJMix() requires at least 3 tracks to build a mix.
+    if (successCount < 3) {
+      console.log(
+        `Only ${successCount} track(s) downloaded successfully, need at least 3.`
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+};
 
 export const executePlayDjMix = async (
   client: Client,
@@ -1000,7 +1236,7 @@ export const executePlayDjMix = async (
   try {
     const song: Song = {
       title: `DJ Mix - ${mood}`,
-      url: useSfx === false ? OUTPUT : OUTPUT_WITH_SFX,
+      url: useSfx === false ? DJ_OUTPUT : DJ_OUTPUT_WITH_SFX,
       thumbnail_url: process.env.DJ_THUMBNAIL_URL,
       duration: -1,
       seek: 0,
@@ -1018,17 +1254,6 @@ export const executePlayDjMix = async (
       sendReplyFunction,
       song
     );
-    // await sendReplyFunction({
-    //   embeds: [
-    //     new EmbedBuilder()
-    //       .setTitle(song.title)
-    //       .setDescription(
-    //         "Added " + song.title + " to the queue: #" + songQueue.length()
-    //       )
-    //       .setThumbnail(song.thumbnail_url)
-    //       .setColor("DarkGreen"),
-    //   ],
-    // });
   } catch (error) {
     console.log(error);
     sendReplyFunction({
@@ -1038,7 +1263,7 @@ export const executePlayDjMix = async (
           .setDescription(
             "An error occurred while trying to play the DJ Mix. Please try again later."
           )
-          .setColor("Red"),
+          .setColor("DarkRed"),
       ],
     });
   }

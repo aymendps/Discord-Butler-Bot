@@ -155,6 +155,12 @@ const main = async () => {
     await connectDB();
     await startBotLockHeartbeat();
     await AIChatManagerInstance.logHealthStatus();
+    console.log(`DJ B has been configured to use the following paths:
+      temp: ${process.env.DJ_TEMP_DIR}
+      sfx: ${process.env.DJ_SFX_DIR}
+      assets: ${process.env.DJ_ASSETS_DIR}
+Very Important: Make sure the directories are valid and that they do not contain any of your personal files. Otherwise, you risk losing them forever.
+`);
     console.log("Establishing Butler Bot's listeners...");
     establishListeners(client, songQueue, audioPlayer, AIChatManagerInstance);
     console.log("Butler Bot is starting...");

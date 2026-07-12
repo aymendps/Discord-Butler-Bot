@@ -32,6 +32,7 @@ import { getInnertubeAgent } from "../main";
 import { YTNodes } from "youtubei.js";
 import path from "path";
 import {
+  downloadSongsForDJMix,
   generateDJMix,
   getAudioFileDuration,
   getDJMixPlaceholderSongPath,
@@ -265,27 +266,17 @@ export const playSong = async (
         });
         audioPlayer.play(placeholderResource);
 
-        const result = await generateDJMix(currentSong.djMixMode);
-        const duration = await getAudioFileDuration(currentSong.url);
-        currentSong.duration = duration;
+        // since it's DJ Mix - ${mood}, remove DJ Mix - from the title to get the mood
+        const mood = currentSong.title.replace("DJ Mix - ", "").trim();
+        const success = await downloadSongsForDJMix(mood);
 
-        if (result.status === true) {
-          // switch from placeholder song to the generatred DJ mix, which has all its data stored in currentSong
-          ffmpeg(currentSong.url)
-            .noVideo()
-            .audioCodec("libopus")
-            .format("opus")
-            .audioChannels(2)
-            .on("error", (err, stdout, stderr) => {})
-            .on("stderr", (stderr) => {})
-            .pipe(ffmpegStream);
-
-          const audioResource = createAudioResource(ffmpegStream, {
-            inputType: StreamType.OggOpus,
-          });
-          audioPlayer.play(audioResource);
+        if (songQueue.justSkipped) {
           placeholderCommand.kill("SIGKILL");
-        } else {
+          songQueue.justSkipped = false;
+          return;
+        }
+
+        if (!success) {
           placeholderCommand.kill("SIGKILL");
           await errorReply();
           playSong(
@@ -299,6 +290,55 @@ export const playSong = async (
             finishReply,
             ageRestrictionReply
           );
+        } else {
+          console.log(
+            `Finished downloading. Now generating DJ mix for mood: ${mood}`
+          );
+          const result = await generateDJMix(currentSong.djMixMode);
+
+          if (songQueue.justSkipped) {
+            placeholderCommand.kill("SIGKILL");
+            songQueue.justSkipped = false;
+            return;
+          }
+
+          const duration = await getAudioFileDuration(currentSong.url);
+          currentSong.duration = duration;
+
+          if (result === true) {
+            console.log(
+              `Finished generating DJ mix for mood: ${mood}. Now playing the generated mix.`
+            );
+            // switch from placeholder song to the generatred DJ mix, which has all its data stored in currentSong
+            ffmpeg(currentSong.url)
+              .noVideo()
+              .audioCodec("libopus")
+              .format("opus")
+              .audioChannels(2)
+              .on("error", (err, stdout, stderr) => {})
+              .on("stderr", (stderr) => {})
+              .pipe(ffmpegStream);
+
+            const audioResource = createAudioResource(ffmpegStream, {
+              inputType: StreamType.OggOpus,
+            });
+            audioPlayer.play(audioResource);
+            placeholderCommand.kill("SIGKILL");
+          } else {
+            placeholderCommand.kill("SIGKILL");
+            await errorReply();
+            playSong(
+              connection,
+              audioPlayer,
+              songQueue,
+              songQueue.pop(),
+              sendReplyFunction,
+              successReply,
+              errorReply,
+              finishReply,
+              ageRestrictionReply
+            );
+          }
         }
       } else {
         ffmpeg(currentSong.url)

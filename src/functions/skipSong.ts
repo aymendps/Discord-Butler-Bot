@@ -3,10 +3,12 @@ import { ChannelType, Client, EmbedBuilder, GuildMember } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
 import { SongQueue } from "../interfaces/song";
 import { executeStopSong } from "./stopSong";
+import { cancelDJMixGeneration } from "./playDjMix";
 
 export const skipSong = (audioPlayer: AudioPlayer, songQueue: SongQueue) => {
   songQueue.justSkipped = true;
   songQueue.justSeeked = false;
+  cancelDJMixGeneration();
   const status = audioPlayer.stop(true);
   return status;
 };
