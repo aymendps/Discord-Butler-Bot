@@ -268,7 +268,7 @@ export const playSong = async (
 
         // since it's DJ Mix - ${mood}, remove DJ Mix - from the title to get the mood
         const mood = currentSong.title.replace("DJ Mix - ", "").trim();
-        const result = await downloadSongsForDJMix(mood);
+        const result = await downloadSongsForDJMix(mood, sendReplyFunction);
 
         if (result.status !== "success") {
           placeholderCommand.kill("SIGKILL");

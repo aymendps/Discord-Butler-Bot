@@ -15,10 +15,11 @@ import { executePlaySong } from "./playSong";
 import { AudioPlayer } from "@discordjs/voice";
 import { DJ_TEMP_DIR, DJ_ASSETS_DIR, DJ_SFX_DIR } from "../config";
 import { create as createYtDlExec } from "youtube-dl-exec";
-import { getInnertubeAgent } from "../main";
+import { getInnertubeAgent, ytdlAgent } from "../main";
 import { YTNodes } from "youtubei.js";
 import { TinyspawnPromise } from "tinyspawn";
 import { spawn, exec, ChildProcess } from "child_process";
+import * as ytdl from "@distube/ytdl-core";
 
 const DJ_OUTPUT = path.join(DJ_TEMP_DIR, "dj_mix.mp3");
 const DJ_OUTPUT_WITH_SFX = path.join(DJ_TEMP_DIR, "dj_mix_with_sfx.mp3");
@@ -1083,7 +1084,14 @@ function extractDurationText(view: any): string | undefined {
   return undefined;
 }
 
-const getSongsForMood = async (mood: string): Promise<string[]> => {
+interface SongsForMoodResult {
+  url: string;
+  title: string;
+  thumbnail: string;
+  duration: number;
+}
+
+const getSongsForMood = async (mood: string): Promise<SongsForMoodResult[]> => {
   try {
     const ytAgent = await getInnertubeAgent();
     const search = await ytAgent.search(mood + "music", { type: "playlist" });
@@ -1126,17 +1134,24 @@ const getSongsForMood = async (mood: string): Promise<string[]> => {
       MAX_PLAYLIST_SONGS
     );
 
-    let songUrls: string[] = [];
+    let songResults: SongsForMoodResult[] = [];
 
     for (const video of finalVideos) {
       if (video.type == "LockupView") {
         const view = video.as(YTNodes.LockupView);
+        const url = `https://www.youtube.com/watch?v=${view.content_id}`;
+        const songInfo = await ytdl.getBasicInfo(url, { agent: ytdlAgent });
 
-        songUrls.push(`https://www.youtube.com/watch?v=${view.content_id}`);
+        songResults.push({
+          url: `https://www.youtube.com/watch?v=${view.content_id}`,
+          title: songInfo.videoDetails.title,
+          thumbnail: songInfo.videoDetails.thumbnails[0].url,
+          duration: Number(songInfo.videoDetails.lengthSeconds),
+        });
       }
     }
 
-    return songUrls;
+    return songResults;
   } catch (error) {
     console.log(error);
     return [];
@@ -1248,53 +1263,86 @@ type DjMixGenerationResultStatus = "success" | "failure" | "cancelled";
 interface DjMixGenerationResult {
   status: DjMixGenerationResultStatus;
   token: number;
+  songResults: SongsForMoodResult[];
 }
 
 export const downloadSongsForDJMix = async (
-  mood: string
+  mood: string,
+  sendReplyFunction: sendReplyFunction
 ): Promise<DjMixGenerationResult> => {
   djMixGenerationToken++;
   const token = djMixGenerationToken;
   try {
     cleanUpPreviousTracks();
 
-    const songUrls = await getSongsForMood(mood);
-    if (token !== djMixGenerationToken) return { status: "cancelled", token };
+    const songResults = await getSongsForMood(mood);
+    if (token !== djMixGenerationToken)
+      return { status: "cancelled", token, songResults: songResults };
 
-    if (!songUrls || songUrls.length < 3) {
+    if (!songResults || songResults.length < 3) {
       console.log("Not enough songs found for mood: " + mood);
-      return { status: "failure", token };
+      return { status: "failure", token, songResults: songResults };
     }
+
+    const resultsEmbed = songResults.map((song, index) => {
+      const hours = Math.floor(song.duration / 3600);
+      const minutes = Math.floor((song.duration % 3600) / 60);
+      const seconds = song.duration % 60;
+
+      return new EmbedBuilder()
+        .setTitle(`Selection #${index + 1}`)
+        .setDescription(
+          `[${song.title}](${song.url})\nDuration of ${String(hours).padStart(
+            2,
+            "0"
+          )}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+            2,
+            "0"
+          )}`
+        )
+        .setThumbnail(song.thumbnail)
+        .setColor("DarkGreen");
+    });
+    sendReplyFunction({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle(`DJ B's Menu for Mix - ${mood}`)
+          .setColor("DarkGreen"),
+        ...resultsEmbed,
+      ],
+    });
 
     let successCount = 0;
 
     console.log(
-      `Starting download of ${songUrls.length} tracks for mood: ${mood}`
+      `Starting download of ${songResults.length} tracks for mood: ${mood}`
     );
-    console.log(songUrls);
+    console.log(songResults);
 
     // Sequential on purpose
-    for (let i = 0; i < songUrls.length; i++) {
-      if (token !== djMixGenerationToken) return { status: "cancelled", token };
+    for (let i = 0; i < songResults.length; i++) {
+      if (token !== djMixGenerationToken)
+        return { status: "cancelled", token, songResults: songResults };
       const destPath = path.join(DJ_TEMP_DIR, `track_${i}.mp3`);
-      const ok = await downloadSingleTrack(songUrls[i], destPath, token);
+      const ok = await downloadSingleTrack(songResults[i].url, destPath, token);
       if (ok) successCount++;
     }
 
-    if (token !== djMixGenerationToken) return { status: "cancelled", token };
+    if (token !== djMixGenerationToken)
+      return { status: "cancelled", token, songResults: songResults };
 
     // createDJMix() requires at least 3 tracks to build a mix.
     if (successCount < 3) {
       console.log(
         `Only ${successCount} track(s) downloaded successfully, need at least 3.`
       );
-      return { status: "failure", token };
+      return { status: "failure", token, songResults: songResults };
     }
 
-    return { status: "success", token };
+    return { status: "success", token, songResults: songResults };
   } catch (error) {
     console.log(error);
-    return { status: "failure", token };
+    return { status: "failure", token, songResults: [] };
   }
 };
 
