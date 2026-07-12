@@ -926,7 +926,13 @@ async function createDJMix(
 }
 
 export function getDJMixPlaceholderSongPath(): string {
-  return path.join(DJ_ASSETS_DIR, "djb_placeholder.mp3");
+  const placeholderFiles = fs
+    .readdirSync(DJ_ASSETS_DIR)
+    .filter((f) => f.includes("placeholder") && f.endsWith(".mp3"));
+  return path.join(
+    DJ_ASSETS_DIR,
+    placeholderFiles[Math.floor(Math.random() * placeholderFiles.length)]
+  );
 }
 
 function getDJMixIntroSongPath(): string {
