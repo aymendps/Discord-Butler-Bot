@@ -27,7 +27,7 @@ if ((process as any).pkg) {
 }
 
 import * as Discord from "discord.js";
-import { TOKEN } from "./config";
+import { DJ_ASSETS_DIR, DJ_SFX_DIR, DJ_TEMP_DIR, TOKEN } from "./config";
 import establishListeners from "./events";
 import { SongQueue } from "./interfaces/song";
 import { createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
@@ -156,9 +156,9 @@ const main = async () => {
     await startBotLockHeartbeat();
     await AIChatManagerInstance.logHealthStatus();
     console.log(`DJ B has been configured to use the following paths:
-      temp: ${process.env.DJ_TEMP_DIR}
-      sfx: ${process.env.DJ_SFX_DIR}
-      assets: ${process.env.DJ_ASSETS_DIR}
+      temp: ${DJ_TEMP_DIR}
+      sfx: ${DJ_SFX_DIR}
+      assets: ${DJ_ASSETS_DIR}
 Very Important: Make sure the directories are valid and that they do not contain any of your personal files. Otherwise, you risk losing them forever.
 `);
     console.log("Establishing Butler Bot's listeners...");

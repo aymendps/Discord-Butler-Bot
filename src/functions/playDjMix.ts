@@ -18,7 +18,7 @@ import { create as createYtDlExec } from "youtube-dl-exec";
 import { getInnertubeAgent } from "../main";
 import { YTNodes } from "youtubei.js";
 import { TinyspawnPromise } from "tinyspawn";
-import { exec } from "child_process";
+import { spawn, exec, ChildProcess } from "child_process";
 
 const DJ_OUTPUT = path.join(DJ_TEMP_DIR, "dj_mix.mp3");
 const DJ_OUTPUT_WITH_SFX = path.join(DJ_TEMP_DIR, "dj_mix_with_sfx.mp3");
@@ -1143,7 +1143,7 @@ const getSongsForMood = async (mood: string): Promise<string[]> => {
   }
 };
 
-let currentDownloadProcess: TinyspawnPromise = null;
+let currentDownloadProcess: TinyspawnPromise | ChildProcess = null;
 
 function killCurrentDownloadProcess() {
   if (currentDownloadProcess) {
@@ -1163,43 +1163,70 @@ export function cancelDJMixGeneration() {
   killCurrentDownloadProcess();
 }
 
+function runYtDlp(args: string[]): {
+  process: ReturnType<typeof spawn>;
+  promise: Promise<void>;
+} {
+  const proc = spawn(process.env.YOUTUBE_DL_DIR_EXE, args, {
+    shell: false, // critical: argv array + shell:false avoids cmd.exe re-splitting on spaces
+    windowsHide: true,
+  });
+
+  const promise = new Promise<void>((resolve, reject) => {
+    let stderr = "";
+    proc.stderr?.on("data", (chunk) => (stderr += chunk.toString()));
+
+    proc.on("error", (err) => reject(err));
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`yt-dlp exited with code ${code}: ${stderr}`));
+    });
+  });
+
+  return { process: proc, promise };
+}
+
 async function downloadSingleTrack(
   url: string,
   destPath: string,
   token: number
 ): Promise<boolean> {
   try {
-    const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
     console.log(`Downloading track: ${url} → ${destPath}`);
 
-    const proc = youtubeDl.exec(
+    const args = [
       url,
-      {
-        format: "bestaudio/best",
-        extractAudio: true,
-        audioFormat: "mp3",
-        audioQuality: 0, // best
-        ffmpegLocation: process.env.FFMPEG_PATH,
-        output: destPath,
-        userAgent: "googlebot",
-        addHeader: ["referer:youtube.com"],
-        noCheckCertificates: true,
-        noWarnings: true,
-        preferFreeFormats: true,
-        cookies: path.join(
-          (process as any).pkg ? path.dirname(process.execPath) : __dirname,
-          process.env.YOUTUBE_DL_COOKIE
-        ),
-      },
-      { shell: false }
-    );
+      "--format",
+      "bestaudio/best",
+      "--extract-audio",
+      "--audio-format",
+      "mp3",
+      "--audio-quality",
+      "0",
+      "--ffmpeg-location",
+      process.env.FFMPEG_PATH,
+      "--output",
+      destPath,
+      "--no-playlist",
+      "--no-audio-multistreams",
+      "--user-agent",
+      "googlebot",
+      "--add-header",
+      "referer:youtube.com",
+      "--no-check-certificates",
+      "--no-warnings",
+      "--prefer-free-formats",
+      "--cookies",
+      path.join(
+        (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+        process.env.YOUTUBE_DL_COOKIE
+      ),
+    ];
 
-    proc.catch((err) => {
-      // console.log(`playDjMix.ts, single track:`, err);
-    });
+    const { process: proc, promise } = runYtDlp(args);
 
     currentDownloadProcess = proc;
-    await proc;
+    await promise;
     currentDownloadProcess = null;
 
     if (token !== djMixGenerationToken) return false;

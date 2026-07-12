@@ -1,6 +1,6 @@
 {
   "name": "discord-butler-bot",
-  "version": "1.1.0.0",
+  "version": "1.1.1.0",
   "bin": "./dist/main.js",
   "pkg": {
     "targets": [
@@ -16,7 +16,7 @@
     "start": "ts-node src/main.ts",
     "dev": "nodemon src/main.ts",
     "build": "tsc --build --force",
-    "package": "pkg . --sea && node -e \"require('fs').copyFileSync('LICENSE','build/LICENSE'); require('fs').cpSync('.data/dj','build/build_deps/dj',{recursive:true})\"",
+    "package": "pkg . --sea && node -e \"require('fs').copyFileSync('LICENSE','build/LICENSE'); require('fs').cpSync('.data/dj/assets','build/build_deps/dj/assets',{recursive:true}); require('fs').cpSync('.data/dj/sfx','build/build_deps/dj/sfx',{recursive:true})\"",
     "sign": "npx resedit build/discord-butler-bot.exe build/discord-butler-bot.exe --ignore-signed --definition resedit.definition.json --file-version %npm_package_version% --product-version %npm_package_version%",
     "release": "npm run build && npm run package && npm run sign"
   },
