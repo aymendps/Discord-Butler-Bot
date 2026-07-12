@@ -268,47 +268,41 @@ export const playSong = async (
 
         // since it's DJ Mix - ${mood}, remove DJ Mix - from the title to get the mood
         const mood = currentSong.title.replace("DJ Mix - ", "").trim();
-        const success = await downloadSongsForDJMix(mood);
+        const result = await downloadSongsForDJMix(mood);
 
-        if (songQueue.justSkipped) {
+        if (result.status !== "success") {
           placeholderCommand.kill("SIGKILL");
-          songQueue.justSkipped = false;
-          return;
-        }
-
-        if (!success) {
-          placeholderCommand.kill("SIGKILL");
-          await errorReply();
-          playSong(
-            connection,
-            audioPlayer,
-            songQueue,
-            songQueue.pop(),
-            sendReplyFunction,
-            successReply,
-            errorReply,
-            finishReply,
-            ageRestrictionReply
-          );
+          if (result.status === "cancelled") {
+            console.log("DJ Mix generation was cancelled");
+          } else if (result.status === "failure") {
+            await errorReply();
+            playSong(
+              connection,
+              audioPlayer,
+              songQueue,
+              songQueue.pop(),
+              sendReplyFunction,
+              successReply,
+              errorReply,
+              finishReply,
+              ageRestrictionReply
+            );
+          }
         } else {
           console.log(
             `Finished downloading. Now generating DJ mix for mood: ${mood}`
           );
-          const result = await generateDJMix(currentSong.djMixMode);
+          const status = await generateDJMix(
+            currentSong.djMixMode,
+            result.token
+          );
 
-          if (songQueue.justSkipped) {
-            placeholderCommand.kill("SIGKILL");
-            songQueue.justSkipped = false;
-            return;
-          }
-
-          const duration = await getAudioFileDuration(currentSong.url);
-          currentSong.duration = duration;
-
-          if (result === true) {
+          if (status === "success") {
             console.log(
               `Finished generating DJ mix for mood: ${mood}. Now playing the generated mix.`
             );
+            const duration = await getAudioFileDuration(currentSong.url);
+            currentSong.duration = duration;
             // switch from placeholder song to the generatred DJ mix, which has all its data stored in currentSong
             ffmpeg(currentSong.url)
               .noVideo()
@@ -326,18 +320,22 @@ export const playSong = async (
             placeholderCommand.kill("SIGKILL");
           } else {
             placeholderCommand.kill("SIGKILL");
-            await errorReply();
-            playSong(
-              connection,
-              audioPlayer,
-              songQueue,
-              songQueue.pop(),
-              sendReplyFunction,
-              successReply,
-              errorReply,
-              finishReply,
-              ageRestrictionReply
-            );
+            if (status === "cancelled") {
+              console.log("DJ Mix generation was cancelled");
+            } else if (status === "failure") {
+              await errorReply();
+              playSong(
+                connection,
+                audioPlayer,
+                songQueue,
+                songQueue.pop(),
+                sendReplyFunction,
+                successReply,
+                errorReply,
+                finishReply,
+                ageRestrictionReply
+              );
+            }
           }
         }
       } else {

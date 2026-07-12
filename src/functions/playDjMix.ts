@@ -35,8 +35,8 @@ const FADE_SEARCH_WINDOW_SEC = 20;
 const FADE_LEVEL_RATIO = 0.6;
 const FADE_MIN_TRIM_SEC = 1.5;
 
-const RANDOM_CUT_MIN_RATIO = 0.4;
-const RANDOM_CUT_MAX_RATIO = 0.6;
+const RANDOM_CUT_MIN_RATIO = 0.6;
+const RANDOM_CUT_MAX_RATIO = 0.8;
 const RANDOM_CUT_MIN_ABS_SEC = 120;
 
 const ONSET_SEARCH_WINDOW_SEC = 1.0;
@@ -61,7 +61,7 @@ const TRANSITION_DUCK_RELEASE_SEC = 0.35;
 const TRANSITION_SFX_MAX_REPEAT_HISTORY_LENGTH = 2;
 const TRANSITION_VOICE_GUARD_SEC = 1.0; // padding kept clear around a baked-in transition voice window
 
-const MAX_PLAYLISTS_TO_USE = 3;
+const MAX_PLAYLISTS_TO_USE = 2;
 const MAX_PLAYLIST_SONGS = 5;
 const MIN_VIDEO_DURATION_SEC = 60;
 const MAX_VIDEO_DURATION_SEC = 600;
@@ -316,6 +316,7 @@ async function addRandomSfx(
 
       filters.push(
         `[${inputIndex}:a]` +
+          `aformat=sample_rates=48000:channel_layouts=stereo,` +
           `volume=${volume.toFixed(2)},` +
           `adelay=${delayMs}|${delayMs}` +
           `[sfx${inputIndex}]`
@@ -335,10 +336,13 @@ async function addRandomSfx(
       inputIndex++;
     }
 
-    // Chain one volume filter per voice window onto the main track. Each
-    // filter is 1.0 outside its own window, so chaining is safe as long as
-    // windows don't overlap (they won't, since SFX are spaced by interval).
     let mainLabel = "0:a";
+    const resampledMain = "mainresampled";
+    filters.unshift(
+      `[${mainLabel}]aformat=sample_rates=48000:channel_layouts=stereo[${resampledMain}]`
+    );
+    mainLabel = resampledMain;
+
     duckWindows.forEach((win, i) => {
       const nextLabel = `ducked${i}`;
       const expr = buildDuckExpr(win.start, win.end);
@@ -363,6 +367,8 @@ async function addRandomSfx(
         filterScriptPath,
         "-map",
         "[out]",
+        "-ar",
+        "48000",
         "-codec:a",
         "libmp3lame",
         "-q:a",
@@ -694,7 +700,7 @@ async function createDJMix(
       filters.push(
         `[${i}:a]atrim=start=${t.trimStart.toFixed(3)}:end=${t.trimEnd.toFixed(
           3
-        )},asetpts=PTS-STARTPTS,volume=${t.gain.toFixed(3)}[trim_${i}]`
+        )},asetpts=PTS-STARTPTS,volume=${t.gain.toFixed(3)},aformat=sample_rates=48000:channel_layouts=stereo[trim_${i}]`
       );
     });
 
@@ -745,7 +751,7 @@ async function createDJMix(
 
         const voiceTrimmed = label("transvoice_trim");
         filters.push(
-          `[${voiceInfo.inputIndex}:a]atrim=0:${voiceDur.toFixed(3)},asetpts=PTS-STARTPTS[${voiceTrimmed}]`
+          `[${voiceInfo.inputIndex}:a]atrim=0:${voiceDur.toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo[${voiceTrimmed}]`
         );
         const voiceDelayed = label("transvoice_delay");
         filters.push(
@@ -821,7 +827,9 @@ async function createDJMix(
       filters.push(
         `[${outroInputIndex}:a]atrim=start=${outroTrim.trimStart.toFixed(
           3
-        )}:end=${outroTrim.trimEnd.toFixed(3)},asetpts=PTS-STARTPTS[${outroLabel}]`
+        )}:end=${outroTrim.trimEnd.toFixed(
+          3
+        )},asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo[${outroLabel}]`
       );
       finalLabels.push(outroLabel);
     }
@@ -885,6 +893,8 @@ async function createDJMix(
       filterScriptPath,
       "-map",
       "[out]",
+      "-ar",
+      "48000",
       "-codec:a",
       "libmp3lame",
       "-q:a",
@@ -935,8 +945,23 @@ async function prependIntroToMix(mixPath: string): Promise<void> {
     ffmpeg()
       .input(introPath)
       .input(mixPath)
-      .complexFilter(["[0:a][1:a]concat=n=2:v=0:a=1[out]"])
-      .outputOptions(["-map", "[out]", "-codec:a", "libmp3lame", "-q:a", "2"])
+      .complexFilter([
+        "[0:a]aformat=sample_rates=48000:channel_layouts=stereo[intro0]",
+        "[1:a]aformat=sample_rates=48000:channel_layouts=stereo[mix0]",
+        "[intro0][mix0]concat=n=2:v=0:a=1[out]",
+      ])
+      .outputOptions([
+        "-map",
+        "[out]",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "2",
+      ])
       .on("stderr", (line) => {
         // console.log(line)
       })
@@ -955,15 +980,23 @@ function getDJMixOutroSongPath(): string {
   return path.join(DJ_ASSETS_DIR, "djb_outro.mp3");
 }
 
-export async function generateDJMix(djMixMode: DjMixMode) {
+export async function generateDJMix(
+  djMixMode: DjMixMode,
+  token: number
+): Promise<DjMixGenerationResultStatus> {
   try {
+    if (token !== djMixGenerationToken) return "cancelled";
+
     if (!fs.existsSync(DJ_TEMP_DIR))
       throw new Error("temp folder does not exist");
 
     const files = getAudioFiles();
     const tracks = await loadTracks(files);
 
+    if (token !== djMixGenerationToken) return "cancelled";
+
     const transitionVoiceWindows = await createDJMix(tracks, DJ_OUTPUT);
+    if (token !== djMixGenerationToken) return "cancelled";
 
     if (djMixMode === "SFX") {
       await addRandomSfx(
@@ -972,20 +1005,20 @@ export async function generateDJMix(djMixMode: DjMixMode) {
         SFX_INTERVAL, // every 10 seconds
         transitionVoiceWindows
       );
+      if (token !== djMixGenerationToken) return "cancelled";
     }
 
     const outputPath = djMixMode === "SFX" ? DJ_OUTPUT_WITH_SFX : DJ_OUTPUT;
     await prependIntroToMix(outputPath);
-    return true;
+    if (token !== djMixGenerationToken) return "cancelled";
+    return "success";
   } catch (error) {
     console.log(error);
-    return false;
+    return "failure";
   }
 }
 
-// region discord related
-
-function clearPreviousTracks() {
+function cleanUpPreviousTracks() {
   if (!fs.existsSync(DJ_TEMP_DIR)) {
     fs.mkdirSync(DJ_TEMP_DIR, { recursive: true });
     return;
@@ -994,7 +1027,9 @@ function clearPreviousTracks() {
     .readdirSync(DJ_TEMP_DIR)
     .filter(
       (f) =>
-        f.endsWith(".mp3") && f !== "dj_mix.mp3" && f !== "dj_mix_with_sfx.mp3"
+        (f.endsWith(".mp3") || f.endsWith(".ogg")) &&
+        f !== "dj_mix.mp3" &&
+        f !== "dj_mix_with_sfx.mp3"
     );
   for (const f of stale) {
     fs.unlinkSync(path.join(DJ_TEMP_DIR, f));
@@ -1085,12 +1120,15 @@ const getSongsForMood = async (mood: string): Promise<string[]> => {
       );
     });
 
-    // const shuffledVideos = shuffle(videos).splice(0, MAX_PLAYLIST_SONGS);
-    const shuffledVideos = shuffle(videos).slice(0, MAX_PLAYLIST_SONGS);
+    // const shuffledVideos = shuffle(videos).slice(0, MAX_PLAYLIST_SONGS);
+    const finalVideos = shuffle(videos.slice(0, MAX_PLAYLIST_SONGS * 2)).splice(
+      0,
+      MAX_PLAYLIST_SONGS
+    );
 
     let songUrls: string[] = [];
 
-    for (const video of shuffledVideos) {
+    for (const video of finalVideos) {
       if (video.type == "LockupView") {
         const view = video.as(YTNodes.LockupView);
 
@@ -1178,18 +1216,27 @@ async function downloadSingleTrack(
   }
 }
 
-export const downloadSongsForDJMix = async (mood: string) => {
-  const token = ++djMixGenerationToken;
+type DjMixGenerationResultStatus = "success" | "failure" | "cancelled";
 
+interface DjMixGenerationResult {
+  status: DjMixGenerationResultStatus;
+  token: number;
+}
+
+export const downloadSongsForDJMix = async (
+  mood: string
+): Promise<DjMixGenerationResult> => {
+  djMixGenerationToken++;
+  const token = djMixGenerationToken;
   try {
-    clearPreviousTracks();
+    cleanUpPreviousTracks();
 
     const songUrls = await getSongsForMood(mood);
-    if (token !== djMixGenerationToken) return false;
+    if (token !== djMixGenerationToken) return { status: "cancelled", token };
 
     if (!songUrls || songUrls.length < 3) {
       console.log("Not enough songs found for mood: " + mood);
-      return false;
+      return { status: "failure", token };
     }
 
     let successCount = 0;
@@ -1201,26 +1248,26 @@ export const downloadSongsForDJMix = async (mood: string) => {
 
     // Sequential on purpose
     for (let i = 0; i < songUrls.length; i++) {
-      if (token !== djMixGenerationToken) return false;
+      if (token !== djMixGenerationToken) return { status: "cancelled", token };
       const destPath = path.join(DJ_TEMP_DIR, `track_${i}.mp3`);
       const ok = await downloadSingleTrack(songUrls[i], destPath, token);
       if (ok) successCount++;
     }
 
-    if (token !== djMixGenerationToken) return false;
+    if (token !== djMixGenerationToken) return { status: "cancelled", token };
 
     // createDJMix() requires at least 3 tracks to build a mix.
     if (successCount < 3) {
       console.log(
         `Only ${successCount} track(s) downloaded successfully, need at least 3.`
       );
-      return false;
+      return { status: "failure", token };
     }
 
-    return true;
+    return { status: "success", token };
   } catch (error) {
     console.log(error);
-    return false;
+    return { status: "failure", token };
   }
 };
 
@@ -1268,5 +1315,3 @@ export const executePlayDjMix = async (
     });
   }
 };
-
-// endregion
