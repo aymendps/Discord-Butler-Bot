@@ -254,7 +254,11 @@ export const executeSuggestSong = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(verifiedSong.title)
-              .setURL(verifiedSong.url)
+              .setURL(
+                verifiedSong.isFile
+                  ? process.env.DJ_WEBSITE_URL
+                  : verifiedSong.url
+              )
               .setDescription(
                 "Added " +
                   verifiedSong.title +

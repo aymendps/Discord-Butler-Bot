@@ -70,7 +70,7 @@ const SUPPORTED_ALT_PLATFORMS = [
 export const addSong = async (
   url: string,
   songQueue: SongQueue,
-  useThisRawSongInstead: Song = null,
+  useThisRawSongInstead: Song = null
 ): Promise<Song> => {
   try {
     if (url) {
@@ -79,7 +79,7 @@ export const addSong = async (
       const altPlatform = SUPPORTED_ALT_PLATFORMS.find(
         (platform) =>
           url.startsWith("https://" + platform.prefix) ||
-          url.startsWith("https://www." + platform.prefix),
+          url.startsWith("https://www." + platform.prefix)
       );
 
       if (altPlatform) {
@@ -135,7 +135,7 @@ export const addSong = async (
             duration: Number(songInfo.videoDetails.lengthSeconds),
             seek: checkForTimeStamp(
               url,
-              Number(songInfo.videoDetails.lengthSeconds),
+              Number(songInfo.videoDetails.lengthSeconds)
             ),
             isLive: songInfo.videoDetails.isLive,
             isYoutubeBased: true,
@@ -280,7 +280,7 @@ export const executeAddSong = async (
   songQueue: SongQueue,
   sendReplyFunction: sendReplyFunction,
   useThisRawSongInstead: Song = null,
-  wasAutoPlayed: boolean = false,
+  wasAutoPlayed: boolean = false
 ) => {
   if (!urlArgs && !useThisRawSongInstead) {
     sendReplyFunction({
@@ -309,13 +309,13 @@ export const executeAddSong = async (
             wasAutoPlayed
               ? `[Auto-Played | ${songQueue.getAutoPlayMode()}] ${song.title.substring(
                   0,
-                  220,
+                  220
                 )}`
-              : song.title.substring(0, 254),
+              : song.title.substring(0, 254)
           )
-          .setURL(song.url)
+          .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
           .setDescription(
-            "Added " + song.title + " to the queue: #" + songQueue.length(),
+            "Added " + song.title + " to the queue: #" + songQueue.length()
           )
           .setThumbnail(song.thumbnail_url)
           .setColor("DarkGreen"),
@@ -326,7 +326,7 @@ export const executeAddSong = async (
       embeds: [
         new EmbedBuilder()
           .setDescription(
-            "The requested song could not be added / found. Make sure the URL is valid!",
+            "The requested song could not be added / found. Make sure the URL is valid!"
           )
           .setColor("DarkRed"),
       ],

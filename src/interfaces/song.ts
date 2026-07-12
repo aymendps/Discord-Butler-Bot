@@ -1,3 +1,5 @@
+export type DjMixMode = "None" | "SFX" | "No SFX";
+
 export interface Song {
   title: string;
   url: string;
@@ -7,6 +9,7 @@ export interface Song {
   isYoutubeBased: boolean;
   isFile?: boolean;
   isLive?: boolean;
+  djMixMode?: DjMixMode;
 }
 
 export type SongQueueLoopingMode = "None" | "One" | "All";

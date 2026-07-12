@@ -78,7 +78,9 @@ export const executePlayFavorites = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(songToAdd.title)
-              .setURL(songToAdd.url)
+              .setURL(
+                songToAdd.isFile ? process.env.DJ_WEBSITE_URL : songToAdd.url
+              )
               .setDescription(
                 "Added " +
                   songToAdd.title +

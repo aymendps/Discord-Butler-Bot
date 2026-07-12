@@ -133,7 +133,7 @@ export const executeSearchSong = async (
           embeds: [
             new EmbedBuilder()
               .setTitle(song.title)
-              .setURL(song.url)
+              .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
               .setDescription(
                 "Added " + song.title + " to the queue: #" + songQueue.length()
               )

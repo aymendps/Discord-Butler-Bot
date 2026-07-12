@@ -132,7 +132,7 @@ export const executeSeekSongTime = async (
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        cookies: path.resolve(
+        cookies: path.join(
           (process as any).pkg ? path.dirname(process.execPath) : __dirname,
           process.env.YOUTUBE_DL_COOKIE
         ),
@@ -172,7 +172,7 @@ export const executeSeekSongTime = async (
         new EmbedBuilder()
           .setTitle(`Starting song from ${matchedTimestamp}`)
           .setDescription(`Current Song: ${current.title}`)
-          .setURL(current.url)
+          .setURL(current.isFile ? process.env.DJ_WEBSITE_URL : current.url)
           .setThumbnail(current.thumbnail_url)
           .setColor("DarkGreen"),
       ],
@@ -278,7 +278,7 @@ export const executeSeekSongTimeSecondsRaw = async (
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        cookies: path.resolve(
+        cookies: path.join(
           (process as any).pkg ? path.dirname(process.execPath) : __dirname,
           process.env.YOUTUBE_DL_COOKIE
         ),

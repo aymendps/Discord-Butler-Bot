@@ -31,6 +31,11 @@ import { addSongIfShouldAutoPlayNext } from "./autoPlayNextSong";
 import { getInnertubeAgent } from "../main";
 import { YTNodes } from "youtubei.js";
 import path from "path";
+import {
+  generateDJMix,
+  getAudioFileDuration,
+  getDJMixPlaceholderSongPath,
+} from "./playDjMix";
 
 let currentStreamProcess: SubprocessPromise = null;
 
@@ -53,7 +58,7 @@ export const playSong = async (
   currentSong: Song,
   sendReplyFunction: sendReplyFunction,
   successReply: (song: Song, remaining: number) => void,
-  errorReply: () => void,
+  errorReply: () => Promise<void>,
   finishReply: () => void,
   ageRestrictionReply: (song: Song) => Promise<void>,
   allowReply = true
@@ -147,23 +152,6 @@ export const playSong = async (
 
     const ffmpegStream = new PassThrough();
     if (!currentSong.isFile) {
-      // const stream = ytdl(
-      //   toPlay,
-      //   currentSong.isLive
-      //     ? {
-      //         agent: ytdlAgent,
-      //         quality: "highestaudio",
-      //         highWaterMark: 1 << 25,
-      //         liveBuffer: 4900,
-      //       }
-      //     : {
-      //         agent: ytdlAgent,
-      //         filter: "audioonly",
-      //         quality: "highestaudio",
-      //         highWaterMark: 1 << 25,
-      //       }
-      // );
-
       killCurrentStreamProcessPrematurely();
 
       const youtubeDl = createYtDlExec(process.env.YOUTUBE_DL_DIR_EXE);
@@ -181,7 +169,7 @@ export const playSong = async (
               noCheckCertificates: true,
               noWarnings: true,
               preferFreeFormats: true,
-              cookies: path.resolve(
+              cookies: path.join(
                 (process as any).pkg
                   ? path.dirname(process.execPath)
                   : __dirname,
@@ -247,20 +235,87 @@ export const playSong = async (
           .on("stderr", (stderr) => {})
           .pipe(ffmpegStream);
       }
-    } else {
-      ffmpeg(currentSong.url)
-        .noVideo()
-        .format("mp3")
-        .audioChannels(2)
-        .on("error", (err, stdout, stderr) => {})
-        .on("stderr", (stderr) => {})
-        .pipe(ffmpegStream);
-    }
 
-    const audioResource = createAudioResource(ffmpegStream, {
-      inputType: currentSong.isFile ? StreamType.Arbitrary : StreamType.OggOpus,
-    });
-    audioPlayer.play(audioResource);
+      const audioResource = createAudioResource(ffmpegStream, {
+        inputType: StreamType.OggOpus,
+      });
+      audioPlayer.play(audioResource);
+    } else {
+      if (
+        currentSong.djMixMode === "SFX" ||
+        currentSong.djMixMode === "No SFX"
+      ) {
+        const placeholderSongPath = getDJMixPlaceholderSongPath();
+
+        // play placeholder song in a loop while the DJ mix is being generated
+        const placeholderStream = new PassThrough();
+        const placeholderCommand = ffmpeg(placeholderSongPath)
+          .inputOptions(["-stream_loop", "-1"])
+          .noVideo()
+          .audioCodec("libopus")
+          .format("opus")
+          .audioChannels(2)
+          .on("error", (err, stdout, stderr) => {})
+          .on("stderr", (stderr) => {});
+
+        placeholderCommand.pipe(placeholderStream);
+
+        const placeholderResource = createAudioResource(placeholderStream, {
+          inputType: StreamType.OggOpus,
+        });
+        audioPlayer.play(placeholderResource);
+
+        const result = await generateDJMix(currentSong.djMixMode);
+        const duration = await getAudioFileDuration(currentSong.url);
+        currentSong.duration = duration;
+
+        if (result.status === true) {
+          // switch from placeholder song to the generatred DJ mix, which has all its data stored in currentSong
+          ffmpeg(currentSong.url)
+            .noVideo()
+            .audioCodec("libopus")
+            .format("opus")
+            .audioChannels(2)
+            .on("error", (err, stdout, stderr) => {})
+            .on("stderr", (stderr) => {})
+            .pipe(ffmpegStream);
+
+          const audioResource = createAudioResource(ffmpegStream, {
+            inputType: StreamType.OggOpus,
+          });
+          audioPlayer.play(audioResource);
+          placeholderCommand.kill("SIGKILL");
+        } else {
+          placeholderCommand.kill("SIGKILL");
+          await errorReply();
+          playSong(
+            connection,
+            audioPlayer,
+            songQueue,
+            songQueue.pop(),
+            sendReplyFunction,
+            successReply,
+            errorReply,
+            finishReply,
+            ageRestrictionReply
+          );
+        }
+      } else {
+        ffmpeg(currentSong.url)
+          .noVideo()
+          .audioCodec("libopus")
+          .format("opus")
+          .audioChannels(2)
+          .on("error", (err, stdout, stderr) => {})
+          .on("stderr", (stderr) => {})
+          .pipe(ffmpegStream);
+
+        const audioResource = createAudioResource(ffmpegStream, {
+          inputType: StreamType.OggOpus,
+        });
+        audioPlayer.play(audioResource);
+      }
+    }
 
     if (allowReply) successReply(currentSong, songQueue.length());
 
@@ -280,6 +335,8 @@ export const playSong = async (
           finishReply,
           ageRestrictionReply
         );
+      } else {
+        console.log(error);
       }
     } else if (error.code === "ERR_SSL_WRONG_VERSION_NUMBER") {
       console.log("Handling SSL Error");
@@ -388,7 +445,7 @@ export const executePlaySong = async (
             embeds: [
               new EmbedBuilder()
                 .setTitle("Playing " + song.title.substring(0, 240))
-                .setURL(song.url)
+                .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                 .setDescription(
                   "There are " +
                     remaining +
@@ -403,7 +460,9 @@ export const executePlaySong = async (
                     new ActionRowBuilder<ButtonBuilder>().addComponents(
                       new ButtonBuilder()
                         .setLabel("Open")
-                        .setURL(song.url)
+                        .setURL(
+                          song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                        )
                         .setStyle(ButtonStyle.Link),
                       new ButtonBuilder()
                         .setCustomId("skip")
@@ -437,7 +496,9 @@ export const executePlaySong = async (
                     new ActionRowBuilder<ButtonBuilder>().addComponents(
                       new ButtonBuilder()
                         .setLabel("Open")
-                        .setURL(song.url)
+                        .setURL(
+                          song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                        )
                         .setStyle(ButtonStyle.Link),
                       new ButtonBuilder()
                         .setCustomId("skip")
@@ -473,7 +534,7 @@ export const executePlaySong = async (
                 embeds: [
                   new EmbedBuilder()
                     .setTitle("Playing " + song.title.substring(0, 240))
-                    .setURL(song.url)
+                    .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                     .setDescription(
                       "There are " +
                         remaining +
@@ -486,7 +547,9 @@ export const executePlaySong = async (
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
                       .setLabel("Open")
-                      .setURL(song.url)
+                      .setURL(
+                        song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                      )
                       .setStyle(ButtonStyle.Link),
                     new ButtonBuilder()
                       .setCustomId("skipped")
@@ -501,7 +564,7 @@ export const executePlaySong = async (
                 embeds: [
                   new EmbedBuilder()
                     .setTitle("Playing " + song.title.substring(0, 240))
-                    .setURL(song.url)
+                    .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                     .setDescription(
                       "There are " +
                         remaining +
@@ -514,7 +577,9 @@ export const executePlaySong = async (
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
                       .setLabel("Open")
-                      .setURL(song.url)
+                      .setURL(
+                        song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                      )
                       .setStyle(ButtonStyle.Link),
                     new ButtonBuilder()
                       .setCustomId("skip")
@@ -573,7 +638,7 @@ export const executePlaySong = async (
                 embeds: [
                   new EmbedBuilder()
                     .setTitle("Playing " + song.title.substring(0, 240))
-                    .setURL(song.url)
+                    .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                     .setDescription(
                       "There are " +
                         remaining +
@@ -586,7 +651,9 @@ export const executePlaySong = async (
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
                       .setLabel("Open")
-                      .setURL(song.url)
+                      .setURL(
+                        song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                      )
                       .setStyle(ButtonStyle.Link),
                     new ButtonBuilder()
                       .setCustomId("skip")
@@ -639,7 +706,7 @@ export const executePlaySong = async (
                 embeds: [
                   new EmbedBuilder()
                     .setTitle("Playing " + song.title.substring(0, 240))
-                    .setURL(song.url)
+                    .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                     .setDescription(
                       "There are " +
                         remaining +
@@ -652,7 +719,9 @@ export const executePlaySong = async (
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
                       .setLabel("Open")
-                      .setURL(song.url)
+                      .setURL(
+                        song.isFile ? process.env.DJ_WEBSITE_URL : song.url
+                      )
                       .setStyle(ButtonStyle.Link),
                     new ButtonBuilder()
                       .setCustomId("skip")
@@ -690,7 +759,7 @@ export const executePlaySong = async (
               embeds: [
                 new EmbedBuilder()
                   .setTitle("Playing " + song.title.substring(0, 240))
-                  .setURL(song.url)
+                  .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                   .setDescription(
                     "There are " +
                       remaining +
@@ -703,7 +772,7 @@ export const executePlaySong = async (
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                   new ButtonBuilder()
                     .setLabel("Open")
-                    .setURL(song.url)
+                    .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
                     .setStyle(ButtonStyle.Link),
                   new ButtonBuilder()
                     .setCustomId("finished")
@@ -715,8 +784,8 @@ export const executePlaySong = async (
             });
           });
         },
-        () => {
-          sendReplyFunction({
+        async () => {
+          await sendReplyFunction({
             embeds: [
               new EmbedBuilder()
                 .setTitle("Something went wrong")
@@ -766,6 +835,7 @@ export const executePlaySong = async (
         ],
       });
     } else {
+      console.log(error);
       sendReplyFunction({
         embeds: [
           new EmbedBuilder()

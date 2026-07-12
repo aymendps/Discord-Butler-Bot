@@ -54,7 +54,7 @@ export const executeSkipSong = async (
       embeds: [
         new EmbedBuilder()
           .setTitle("Skipping " + song.title)
-          .setURL(song.url)
+          .setURL(song.isFile ? process.env.DJ_WEBSITE_URL : song.url)
           .setDescription(
             "This song was skipped by " +
               (member.nickname || member.user.username)

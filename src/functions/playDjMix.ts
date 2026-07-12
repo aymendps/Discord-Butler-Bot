@@ -7,8 +7,12 @@ import {
   MessageCreateOptions,
   InteractionReplyOptions,
   Client,
+  GuildMember,
 } from "discord.js";
 import { sendReplyFunction } from "../interfaces/sendReplyFunction";
+import { DjMixMode, Song, SongQueue } from "../interfaces/song";
+import { executePlaySong } from "./playSong";
+import { AudioPlayer } from "@discordjs/voice";
 
 const TEMP_DIR = path.join(
   (process as any).pkg ? path.dirname(process.execPath) : __dirname,
@@ -18,8 +22,14 @@ const SFX_DIR = path.join(
   (process as any).pkg ? path.dirname(process.execPath) : __dirname,
   process.env.DJ_SFX_DIR
 );
+const ASSETS_DIR = path.join(
+  (process as any).pkg ? path.dirname(process.execPath) : __dirname,
+  process.env.DJ_ASSETS_DIR
+);
 
 const OUTPUT = path.join(TEMP_DIR, "dj_mix.mp3");
+const OUTPUT_WITH_SFX = path.join(TEMP_DIR, "dj_mix_with_sfx.mp3");
+
 const ANALYSIS_SR = 22050;
 
 // ---- tunables ----
@@ -40,11 +50,9 @@ const ONSET_SEARCH_WINDOW_SEC = 1.0;
 const REPEAT_VOLUME_START = 1.0;
 const REPEAT_VOLUME_END = 0.2;
 
-__dirname + "/../.data/yt-dlp.json";
-
-const OUTPUT_WITH_SFX = path.join(TEMP_DIR, "dj_mix_with_sfx.mp3");
 const SFX_START_TIME = 5;
-const SFX_INTERVAL = 40;
+const SFX_INTERVAL = 45;
+const SFX_END_TIME_DELTA = 20;
 const SFX_INTERVAL_DELTA = 10;
 const SFX_MIN_VOLUME = 0.5;
 const SFX_MAX_VOLUME = 0.8;
@@ -60,7 +68,7 @@ const TRANSITION_DUCK_RELEASE_SEC = 0.35;
 const TRANSITION_SFX_MAX_REPEAT_HISTORY_LENGTH = 2;
 const TRANSITION_VOICE_GUARD_SEC = 1.0; // padding kept clear around a baked-in transition voice window
 
-async function getDuration(file: string): Promise<number> {
+export async function getAudioFileDuration(file: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(file, (err, data) => {
       if (err) return reject(err);
@@ -126,7 +134,7 @@ function getSfxFiles(): string[] {
 async function loadSfxMeta(files: string[]): Promise<Map<string, SfxMeta>> {
   const metaMap = new Map<string, SfxMeta>();
   for (const file of files) {
-    const duration = await getDuration(file);
+    const duration = await getAudioFileDuration(file);
     metaMap.set(file, {
       file,
       isVoice: isVoiceSfx(file),
@@ -146,7 +154,7 @@ async function loadTransitionSfxMeta(
 ): Promise<TransitionSfxMeta[]> {
   const metas: TransitionSfxMeta[] = [];
   for (const file of files) {
-    const duration = await getDuration(file);
+    const duration = await getAudioFileDuration(file);
     metas.push({ file, duration });
   }
   return metas;
@@ -257,7 +265,7 @@ async function addRandomSfx(
   }
 
   const sfxMeta = await loadSfxMeta(sfxFiles);
-  const duration = await getDuration(inputMix);
+  const duration = await getAudioFileDuration(inputMix);
 
   return new Promise((resolve, reject) => {
     const cmd = ffmpeg();
@@ -275,7 +283,7 @@ async function addRandomSfx(
 
     for (
       let timestamp = Math.max(SFX_START_TIME, 0);
-      timestamp < duration;
+      timestamp < duration - SFX_END_TIME_DELTA;
       timestamp +=
         intervalSeconds +
         (Math.random() >= 0.5
@@ -361,7 +369,9 @@ async function addRandomSfx(
         "-q:a",
         "2"
       )
-      .on("stderr", (line) => console.log(line))
+      .on("stderr", (line) => {
+        /*console.log(line)*/
+      })
       .on("error", (err) => {
         cleanupFilterScript(filterScriptPath);
         reject(err);
@@ -564,10 +574,10 @@ async function loadTracks(files: string[]): Promise<Track[]> {
       contentDur
     );
 
-    console.log(
-      `${path.basename(file)} → gain ${gain.toFixed(2)}x, trim ${trimStart.toFixed(2)}s–${trimEnd.toFixed(2)}s, ` +
-        `raw-cut ${rawCut.toFixed(2)}s, snapped-to-beat ${playEnd.toFixed(2)}s`
-    );
+    // console.log(
+    //   `${path.basename(file)} → gain ${gain.toFixed(2)}x, trim ${trimStart.toFixed(2)}s–${trimEnd.toFixed(2)}s, ` +
+    //     `raw-cut ${rawCut.toFixed(2)}s, snapped-to-beat ${playEnd.toFixed(2)}s`
+    // );
     tracks.push({ file, trimStart, trimEnd, playEnd, gain }); // pass gain here
   }
   return tracks;
@@ -583,6 +593,14 @@ async function createDJMix(
 ): Promise<TransitionVoiceWindow[]> {
   const transitionSfxFiles = getSfxFiles().filter(isTransitionSfx);
   const transitionMetas = await loadTransitionSfxMeta(transitionSfxFiles);
+
+  // NEW: trim silence off the outro the same way tracks are trimmed
+  const outroPath = getDJMixOutroSongPath();
+  let outroTrim: { trimStart: number; trimEnd: number } | null = null;
+  if (fs.existsSync(outroPath)) {
+    const outroSamples = await extractPCM(outroPath);
+    outroTrim = findSilenceBounds(outroSamples, ANALYSIS_SR);
+  }
 
   return new Promise((resolve, reject) => {
     if (tracks.length < 2) {
@@ -638,6 +656,13 @@ async function createDJMix(
       });
     }
 
+    let outroInputIndex: number | null = null;
+    if (outroTrim) {
+      command.input(outroPath);
+      outroInputIndex = nextInputIndex;
+      nextInputIndex++;
+    }
+
     const filters: string[] = [];
     let uid = 0;
     const label = (base: string) => `${base}${uid++}`;
@@ -679,9 +704,6 @@ async function createDJMix(
 
     tracks.forEach((t, i) => {
       const isLast = i === tracks.length - 1;
-
-      // We removed the early `if (isLast) return;` block so the last track
-      // goes through the stutter pipeline just like the rest.
 
       const copies = REPEATS + 1;
       const splitLabels = Array.from({ length: copies }, () => label("split"));
@@ -739,11 +761,11 @@ async function createDJMix(
         // an absolute position in the final mix once all offsets are known.
         transitionVoiceForTrack.set(i, { ...voiceInfo, delaySec, voiceDur });
 
-        console.log(
-          `${path.basename(t.file)} → transition voice "${path.basename(
-            voiceInfo.file
-          )}" starts at ${delaySec.toFixed(2)}s into body, ending right at the repeat phase`
-        );
+        // console.log(
+        //   `${path.basename(t.file)} → transition voice "${path.basename(
+        //     voiceInfo.file
+        //   )}" starts at ${delaySec.toFixed(2)}s into body, ending right at the repeat phase`
+        // );
       } else {
         filters.push(
           `[${bodySrc}]atrim=0:${bodyDur.toFixed(3)},asetpts=PTS-STARTPTS[${body}]`
@@ -775,9 +797,8 @@ async function createDJMix(
         // If it's the last track, we force the volume ramp to end at 0.0 (silence)
         // If it's the last track, override the volume ramp to fade to near-silence (0.01)
         let currentVol = chunkVols[idx];
-        if (isLast) {
+        if (isLast && !outroTrim) {
           const t_vol = idx / (REPEATS - 1);
-          // Logarithmic fade to 0.01
           currentVol =
             REPEAT_VOLUME_START * Math.pow(0.01 / REPEAT_VOLUME_START, t_vol);
         }
@@ -795,6 +816,16 @@ async function createDJMix(
       );
       finalLabels.push(assembled);
     });
+
+    if (outroTrim && outroInputIndex !== null) {
+      const outroLabel = label("outro");
+      filters.push(
+        `[${outroInputIndex}:a]atrim=start=${outroTrim.trimStart.toFixed(
+          3
+        )}:end=${outroTrim.trimEnd.toFixed(3)},asetpts=PTS-STARTPTS[${outroLabel}]`
+      );
+      finalLabels.push(outroLabel);
+    }
 
     // Translate each track's local transition-voice timing into an
     // absolute position within the final mixed-down output, so callers can
@@ -842,11 +873,11 @@ async function createDJMix(
       previous = outLbl;
     }
 
-    console.log(
-      `FFmpeg filtergraph (${filters.length} filters, ~${
-        filters.join(";").length
-      } chars — written to a script file to avoid CLI length limits)`
-    );
+    // console.log(
+    //   `FFmpeg filtergraph (${filters.length} filters, ~${
+    //     filters.join(";").length
+    //   } chars — written to a script file to avoid CLI length limits)`
+    // );
 
     const filterScriptPath = writeFilterScript(filters, "djmix_filtergraph");
 
@@ -864,15 +895,19 @@ async function createDJMix(
     command
       .outputOptions(...options)
 
-      .on("start", (cmd) => console.log("\nFFmpeg command:\n", cmd))
-      .on("stderr", (line) => console.log(line))
+      .on("start", (cmd) => {
+        // console.log("\nFFmpeg command:\n", cmd)
+      })
+      .on("stderr", (line) => {
+        // console.log(line)
+      })
       .on("error", (err) => {
         console.error("FFmpeg error:", err);
         cleanupFilterScript(filterScriptPath);
         reject(err);
       })
       .on("end", () => {
-        console.log("\nDJ mix created:", output);
+        // console.log("\nDJ mix created:", output);
         cleanupFilterScript(filterScriptPath);
         resolve(transitionVoiceWindows);
       })
@@ -880,42 +915,130 @@ async function createDJMix(
   });
 }
 
+export function getDJMixPlaceholderSongPath(): string {
+  return path.join(ASSETS_DIR, "djb_placeholder.mp3");
+}
+
+function getDJMixIntroSongPath(): string {
+  return path.join(ASSETS_DIR, "djb_intro.mp3");
+}
+
+async function prependIntroToMix(mixPath: string): Promise<void> {
+  const introPath = getDJMixIntroSongPath();
+  if (!fs.existsSync(introPath)) {
+    console.log("No DJ mix intro found, skipping prepend.");
+    return;
+  }
+
+  const tempOutput = mixPath.replace(/\.mp3$/, "_with_intro.mp3");
+
+  await new Promise<void>((resolve, reject) => {
+    ffmpeg()
+      .input(introPath)
+      .input(mixPath)
+      .complexFilter(["[0:a][1:a]concat=n=2:v=0:a=1[out]"])
+      .outputOptions(["-map", "[out]", "-codec:a", "libmp3lame", "-q:a", "2"])
+      .on("stderr", (line) => {
+        // console.log(line)
+      })
+      .on("error", (err) => reject(err))
+      .on("end", () => resolve())
+      .save(tempOutput);
+  });
+
+  // Replace the original mix file with the intro-prefixed version.
+  await new Promise<void>((resolve, reject) => {
+    fs.rename(tempOutput, mixPath, (err) => (err ? reject(err) : resolve()));
+  });
+}
+
+function getDJMixOutroSongPath(): string {
+  return path.join(ASSETS_DIR, "djb_outro.mp3");
+}
+
+export async function generateDJMix(djMixMode: DjMixMode) {
+  try {
+    if (!fs.existsSync(TEMP_DIR)) throw new Error("temp folder does not exist");
+
+    const files = getAudioFiles();
+    const tracks = await loadTracks(files);
+
+    const transitionVoiceWindows = await createDJMix(tracks, OUTPUT);
+
+    if (djMixMode === "SFX") {
+      await addRandomSfx(
+        OUTPUT,
+        OUTPUT_WITH_SFX,
+        SFX_INTERVAL, // every 10 seconds
+        transitionVoiceWindows
+      );
+    }
+
+    const outputPath = djMixMode === "SFX" ? OUTPUT_WITH_SFX : OUTPUT;
+    await prependIntroToMix(outputPath);
+    return {
+      status: true,
+      outputPath,
+    };
+  } catch (error) {
+    console.log(error);
+    return { status: false, outputPath: null };
+  }
+}
+
 // region discord related
 
 export const executePlayDjMix = async (
   client: Client,
+  member: GuildMember,
+  mood: string,
+  useSfx: boolean,
+  songQueue: SongQueue,
+  audioPlayer: AudioPlayer,
   sendReplyFunction: sendReplyFunction
 ) => {
   try {
-    if (!fs.existsSync(TEMP_DIR)) throw new Error("temp folder does not exist");
-    const files = getAudioFiles();
-    console.log("Found songs:", files);
-    const tracks = await loadTracks(files);
-    const transitionVoiceWindows = await createDJMix(tracks, OUTPUT);
-    await addRandomSfx(
-      OUTPUT,
-      OUTPUT_WITH_SFX,
-      SFX_INTERVAL, // every 10 seconds
-      transitionVoiceWindows
+    const song: Song = {
+      title: `DJ Mix - ${mood}`,
+      url: useSfx === false ? OUTPUT : OUTPUT_WITH_SFX,
+      thumbnail_url: process.env.DJ_THUMBNAIL_URL,
+      duration: -1,
+      seek: 0,
+      isYoutubeBased: false,
+      isFile: true,
+      djMixMode: useSfx === false ? "No SFX" : "SFX",
+      isLive: false,
+    };
+    executePlaySong(
+      client,
+      member,
+      null,
+      songQueue,
+      audioPlayer,
+      sendReplyFunction,
+      song
     );
-    await sendReplyFunction({
-      embeds: [
-        new EmbedBuilder()
-          .setDescription(
-            "Play DJ Mix Test. Check console for output. Successs"
-          )
-          .setImage(client.user.avatarURL())
-          .setColor("DarkGreen"),
-      ],
-    });
+    // await sendReplyFunction({
+    //   embeds: [
+    //     new EmbedBuilder()
+    //       .setTitle(song.title)
+    //       .setDescription(
+    //         "Added " + song.title + " to the queue: #" + songQueue.length()
+    //       )
+    //       .setThumbnail(song.thumbnail_url)
+    //       .setColor("DarkGreen"),
+    //   ],
+    // });
   } catch (error) {
     console.log(error);
-    await sendReplyFunction({
+    sendReplyFunction({
       embeds: [
         new EmbedBuilder()
-          .setDescription("Play DJ Mix Test. Check console for output. Failed")
-          .setImage(client.user.avatarURL())
-          .setColor("DarkRed"),
+          .setTitle("Failed to play DJ Mix")
+          .setDescription(
+            "An error occurred while trying to play the DJ Mix. Please try again later."
+          )
+          .setColor("Red"),
       ],
     });
   }
